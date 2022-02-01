@@ -1,0 +1,22 @@
+# Ignore from macOS:
+.DS_Store
+
+# Ignore file types in any location:
+*.txt
+*.png
+*.pxm
+*.zip
+*.ini
+*.config
+*.pango
+
+# Ignore if name starts with in any location:
+OLD-*
+
+# Ignore specific folders within "Mint Installer Resources":
+dependencies/
+source-iso-boot-menus/
+
+# Ignore specific folders and files within "Other Stuff/QA Helper Auto-Scripts":
+lock_screen_slideshow.sh
+auto-scripts+test/

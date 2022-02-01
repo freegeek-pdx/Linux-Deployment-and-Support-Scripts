@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#
+# Created by Pico Mitchell on 03/26/19
+# For Free Geek
+# Last Updated: 01/12/22
+#
+# MIT License
+#
+# Copyright (c) 2022 Free Geek
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+
+
+###########################################################################
+#                                                                         #
+#  TO INSTALL FG SUPPORT, YOU SHOULD SELECT "RUN" WHEN OPENING THIS FILE  #
+#                                                                         #
+#         OR, YOU CAN EXECUTE THIS FILE MANUALLY FROM A TERMINAL          #
+#                                                                         #
+###########################################################################
+
+
+if [[ "$(uname)" != 'Darwin' ]]; then
+    $(which mate-terminal &> /dev/null && echo 'mate-terminal --window' || echo 'gnome-terminal --window-with-profile-internal-id "0"') --title 'Installing Free Geek Support' --hide-menubar --geometry '80x25+0+0' -x bash -c "echo -e 'PREPARING TO INSTALL FREE GEEK SUPPORT (INTERNET IS REQUIRED)\n'
+for install_fg_support_attempt in {1..5}; do
+    actually_install_script_contents=\"\$(curl -m 5 -sL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh')\"
+    if [[ \"\${actually_install_script_contents}\" == *'fg-support'* ]]; then
+        echo \"\${actually_install_script_contents}\" | bash -s -- '$1'
+        break
+    else
+        echo 'FAILED TO DOWNLOAD ACTUAL FREE GEEK SUPPORT INSTALLER (INTERNET IS REQUIRED)'
+        if (( install_fg_support_attempt < 5 )); then
+            echo 'ATTEMPING DOWNLOAD AGAIN...'
+            sleep \"\${install_fg_support_attempt}\"
+        fi
+    fi
+done
+echo -e '\nPRESS ENTER TO CLOSE THIS WINDOW'
+read -r" &> /dev/null
+fi

@@ -1,0 +1,677 @@
+#!ipxe
+
+#
+# MIT License
+#
+# Copyright (c) 2022 Free Geek
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+
+# TO BUILD iPXE, USE THE "build-latest-ipxe-for-fg.sh" SCRIPT
+
+# Kernel Arguments: https://www.kernel.org/doc/html/v4.15/admin-guide/kernel-parameters.html
+
+:load
+
+# Use TFTP for BIOS because HTTP does not always work properly when loading kernel files on BIOS. Keep HTTP for UEFI because it's faster and reliable.
+iseq ${platform} pcbios && set TFTP_OR_HTTP tftp || set TFTP_OR_HTTP http
+
+# NOTE: UEFI boots required "initrd=[INITRD-FILENAME]" as a kernel parameter to boot properly. This is not required (but does not cause problems) for BIOS boots.
+# NOTE: Ubuntu 19.10 (Mint 20) or newer requires "ip=dhcp" as boot arg: https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018
+
+set PRODUCTION_MINT_VERSION                     20.3
+set TESTING_MINT_VERSION                        20.3
+
+set PRODUCTION_LIVE_RESCUE_MINT_VERSION         20.3
+set TESTING_LIVE_RESCUE_MINT_VERSION            20.3
+
+set PRODUCTION_WINDOWS_MAJOR_VERSION            10
+set PRODUCTION_WINDOWS_FEATURE_VERSION          November 2021 Update, 21H2
+set TESTING_WINDOWS_MAJOR_VERSION               11
+set TESTING_WINDOWS_FEATURE_VERSION             Version 21H2, Build 22000
+
+set PRODUCTION_WINPE_IMAGE_NAME                 WinRE-10-21H2
+set TESTING_WINPE_IMAGE_NAME                    WinRE-10-21H2
+
+set PRODUCTION_INSTALL_MINT_CINNAMON_TITLE      Test/Install Linux Mint ${PRODUCTION_MINT_VERSION} (Cinnamon)
+set PRODUCTION_LIVE_MINT_CINNAMON_TITLE         Live Boot Linux Mint ${PRODUCTION_MINT_VERSION} (Cinnamon)
+set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows ${PRODUCTION_WINDOWS_MAJOR_VERSION} Pro (${PRODUCTION_WINDOWS_FEATURE_VERSION})
+
+set HDT_TITLE                                   Hardware Detection Tool (0.5.2)
+set HDS_DOS_TITLE                               Hard Disk Sentinel (DOS Edition 1.21)
+set MEMTEST_UEFI_TITLE                          RAM Stress Test (MemTest86 Version 9.3)
+set MEMTEST_BIOS_TITLE                          RAM Stress Test (Memtest86+)
+set KEYBOARD_TESTER_TITLE                       Keyboard and Mouse Tester
+
+set PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE  Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} Cinnamon)
+set PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE       Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} CLI)
+set LIVE_RESCUE_DEBIAN_TITLE                    LEGACY Live Rescue (Debian 7)
+set PRODUCTION_WINDOWS_RECOVERY_TITLE           Windows ${PRODUCTION_WINDOWS_MAJOR_VERSION} Recovery Environment (${PRODUCTION_WINDOWS_FEATURE_VERSION})
+set PARTEDMAGIC_TITLE                           Parted Magic (2021_02_28)
+set GPARTED_TITLE                               GParted (1.3.1-1)
+set CLONEZILLA_TITLE                            Clonezilla (2.7.2-39)
+
+set BIOS_ONLY_TOOLS_NOTE                        * Starred tools are not compatible with UEFI. Reboot in Legacy BIOS mode to use them.
+
+set IT_TESTING_SUBMENU_PASSWORD                 password
+set TESTING_INSTALL_MINT_CINNAMON_TITLE         TEST MODE: Test/Install Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
+set TESTING_LIVE_MINT_CINNAMON_TITLE            TEST MODE: Live Boot Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
+set TESTING_INSTALL_WINDOWS_TITLE               TEST MODE: Install Windows ${TESTING_WINDOWS_MAJOR_VERSION} Pro (${TESTING_WINDOWS_FEATURE_VERSION})
+set TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE     TEST MODE: Live Rescue (Mint ${TESTING_LIVE_RESCUE_MINT_VERSION} Cinnamon)
+set TESTING_LIVE_RESCUE_MINT_CLI_TITLE          TEST MODE: Live Rescue (Mint ${TESTING_LIVE_RESCUE_MINT_VERSION} CLI)
+
+set PXE_SERVER 192.168.2.44
+
+# iPXE NOTE: Ending lines with "||" allows loading to continue even with failure
+
+iseq ${platform} pcbios && colour --basic 4 --rgb 0x226E8A 5 || colour --basic 5 --rgb 0x88287B 5 || # Set Magenta to Brand Blue for BIOS -or- Brand Purple for UEFI
+colour --basic 6 --rgb 0xB8D300 6 || # Set Cyan to Brand Chartreuse
+colour --basic 7 --rgb 0xF4F4F4 7 || # Set White to Brand Off White
+
+cpair --foreground 7 --background 9 0 || # Default Colour (echo, shell)
+cpair --foreground 7 --background 5 2 || # Highlighted Text
+cpair --foreground 7 --background 5 4 || # Editable Text (login)
+
+console --x 1024 --y 768 ||
+console --left 100 --right 100 --top 35 --picture ${TFTP_OR_HTTP}://${PXE_SERVER}/boot/ipxe-freegeek-background-${platform}.png || console --left 100 --right 100 --top 35 --picture ${TFTP_OR_HTTP}://${PXE_SERVER}/boot/ipxe-freegeek-background-shell.png ||
+
+# Send RAM Testing Stations in Hardware Testing straight to memtest:
+iseq ${mac} 4c:72:b9:4e:89:5b && goto straight-to-memtest ||
+iseq ${mac} 08:62:66:a3:c6:b0 && goto straight-to-memtest ||
+iseq ${mac} 38:2c:4a:70:2f:32 && goto straight-to-memtest ||
+iseq ${mac} 70:85:c2:09:9d:77 && goto straight-to-memtest ||
+iseq ${mac} 74:d0:2b:79:db:2e && goto straight-to-memtest ||
+iseq ${mac} e0:3f:49:79:4e:bc && goto straight-to-memtest ||
+iseq ${mac} e8:40:f2:ec:b1:69 && goto straight-to-memtest ||
+iseq ${mac} f4:6d:04:90:ca:2c && goto straight-to-memtest ||
+
+:main-menu
+imgfree || # Discard any already-downloaded images from previously canceled commands because next boot attempt will kernel panic if previous images aren't freed.
+set MAIN_MENU_TITLE Main Menu (Platform: ${platform})
+iseq ${platform} pcbios && set MAIN_MENU_TITLE Main Menu ||
+iseq ${platform} efi && set MAIN_MENU_TITLE Main Menu ||
+menu ${MAIN_MENU_TITLE}
+item --gap
+item --gap                                          Model: ${manufacturer} ${product}
+item --gap                                          CPU: ${cpumodel}
+iseq ${platform} pcbios && item --gap               RAM: ${memsize} MB          || item --gap   RAM: (UNAVAILABLE IN UEFI)
+isset ${serial} && item --gap                       Serial: ${serial}           || item --gap   MAC: ${mac}
+iseq ${platform} pcbios && item --gap ||
+iseq ${platform} pcbios && item --gap               PLEASE NOTE: If you are going to install an OS and this computer supports UEFI PXE, ||
+iseq ${platform} pcbios && item --gap               REBOOT into BIOS Setup and switch to using UEFI mode instead of Legacy BIOS mode. ||
+item --gap
+item --gap
+item --key I production-install-mint-cinnamon       [I] ${PRODUCTION_INSTALL_MINT_CINNAMON_TITLE}
+item --key L production-live-mint-cinnamon          [L] ${PRODUCTION_LIVE_MINT_CINNAMON_TITLE}
+item --gap
+item --key W production-install-windows             [W] ${PRODUCTION_INSTALL_WINDOWS_TITLE}
+item --gap
+iseq ${platform} pcbios && item --key H hdt         [H] ${HDT_TITLE}            || item --gap   [H] ${HDT_TITLE} *
+iseq ${platform} pcbios && item --key D hds-dos     [D] ${HDS_DOS_TITLE}        || item --gap   [D] ${HDS_DOS_TITLE} *
+iseq ${platform} efi && item --key M memtest-uefi   [M] ${MEMTEST_UEFI_TITLE}   || item --key M memtest-bios-submenu    [M] ${MEMTEST_BIOS_TITLE} >
+item --key K keyboard-tester                        [K] ${KEYBOARD_TESTER_TITLE}
+item --gap
+item --key U advanced-utilities-submenu             [U] Advanced Utilities >
+item --key T it-testing-submenu                     [T] I.T. Testing >
+item --gap
+item --key S shutdown-menu                          [S] Shut Down
+item --key R reboot-menu                            [R] Reboot
+item --gap
+iseq ${platform} efi && item --gap ||
+iseq ${platform} efi && item --gap                  ${BIOS_ONLY_TOOLS_NOTE} ||
+item --gap
+item --gap                                          MENU SHORTCUTS: Shift Key + [ Letter in Square Brackets ]
+choose main-menu-selection && goto ${main-menu-selection} || goto error
+
+:error
+echo
+echo Escaped, Canceled, or Error Occurred
+echo
+echo Reloading Main Menu Momentarily...
+sleep 1
+echo
+goto main-menu
+
+:production-install-mint-cinnamon
+echo
+echo ${PRODUCTION_INSTALL_MINT_CINNAMON_TITLE}
+echo
+params
+param title ${PRODUCTION_INSTALL_MINT_CINNAMON_TITLE}
+param version ${PRODUCTION_MINT_VERSION}
+param preseed production-ubiquity
+param memsize ${memsize}
+param platform ${platform}
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:production-live-mint-cinnamon
+echo
+echo ${PRODUCTION_LIVE_MINT_CINNAMON_TITLE}
+echo
+params
+param title ${PRODUCTION_LIVE_MINT_CINNAMON_TITLE}
+param version ${PRODUCTION_MINT_VERSION}
+param preseed production-liveboot
+param memsize ${memsize}
+param platform ${platform}
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:production-install-windows
+echo
+echo ${PRODUCTION_INSTALL_WINDOWS_TITLE}
+
+# See ":testing-install-windows" for info about wimboot setup and configuration.
+
+# The following 6 lines to download scripts can be COMMENTED OUT if there are NO on-the-fly changes needed since the last WinPE build.
+# But, do not delete them to keep them on hand for quick updates before building a new WinPE with an updated install script included.
+
+#echo
+#echo
+#echo Downloading Windows Preinstallation Environment Installation Scripts...
+#echo
+#initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/winpeshl.ini                                               winpeshl.ini || goto error
+#initrd --timeout 3000 -n InstallWindows.ps1 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/production/Install%20Windows.ps1     InstallWindows.ps1 || goto error
+
+echo
+echo
+echo Downloading Windows Preinstallation Environment Image...
+iseq ${platform} pcbios && echo PLEASE NOTE: This will take about 3 minutes in Legacy BIOS mode. || echo PLEASE NOTE: This will take about 10 seconds in UEFI mode.
+echo
+initrd -n boot.wim ${TFTP_OR_HTTP}://${PXE_SERVER}/windows/${PRODUCTION_WINPE_IMAGE_NAME}.wim boot.wim || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/wimboot gui quiet ||
+goto error
+
+:hdt
+echo
+echo ${HDT_TITLE}
+# hdt-0.5.2.iso last updated on 2020-03-19 with latest pci.ids (https://pci-ids.ucw.cz) using PowerISO (https://poweriso.com)
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/hdt-0.5.2.iso || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso ||
+goto error
+
+:hds-dos
+echo
+echo ${HDS_DOS_TITLE}
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/hdsdos-1.21.iso || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
+goto error
+
+:straight-to-memtest
+iseq ${platform} efi && goto straight-to-memtest-uefi || goto straight-to-memtest-bios
+
+:straight-to-memtest-uefi
+menu Would you like to load ${MEMTEST_UEFI_TITLE}?
+item --gap
+item --gap This MAC (${mac}) has been configured to load straight into MemTest86.
+item --gap
+item --gap
+item --key Y memtest-uefi       [Y] Yes, Load ${MEMTEST_UEFI_TITLE}
+item --key N main-menu          [N] No, Go to Main Menu
+choose --timeout 2000 memtest-menu-selection && goto ${memtest-menu-selection} || goto error
+
+:straight-to-memtest-bios
+menu Would you like to load ${MEMTEST_BIOS_TITLE}?
+item --gap
+item --gap This MAC (${mac}) has been configured to load straight into Memtest86+.
+item --gap
+item --gap
+item --key Y memtest-bios-501   [Y] Yes, Load ${MEMTEST_BIOS_TITLE} Version 5.01
+item --key N main-menu          [N] No, Go to Main Menu
+choose --timeout 2000 memtest-menu-selection && goto ${memtest-menu-selection} || goto error
+
+:memtest-bios-submenu
+menu Choose Desired ${MEMTEST_BIOS_TITLE} Version
+item --gap
+item --key < main-menu          < Return to Main Menu
+item --gap
+item --gap
+item memtest-bios-501           ${MEMTEST_BIOS_TITLE} Version 5.01 (Trusted Production Version)
+item memtest-bios-531b          ${MEMTEST_BIOS_TITLE} Version 5.31b (Latest Beta for Testing)
+choose --default memtest-bios-501 memtest-menu-selection && goto ${memtest-menu-selection} || goto error
+
+:memtest-bios-501
+echo
+echo ${MEMTEST_BIOS_TITLE} Version 5.01
+# Using instructions and versions from: https://ipxe.org/appnote/memtest
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86+-5.01.iso || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
+goto error
+
+:memtest-bios-531b
+echo
+echo ${MEMTEST_BIOS_TITLE} Version 5.31b
+# Using instructions and versions from: https://ipxe.org/appnote/memtest
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86+-5.31b.iso || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
+goto error
+
+:memtest-uefi
+echo
+echo ${MEMTEST_UEFI_TITLE}
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86/BOOTX64.efi TFTPROOT=${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86 ||
+goto error
+
+:keyboard-tester
+echo
+echo ${KEYBOARD_TESTER_TITLE}
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/debian-9.12-keyboardtester/initrd.img || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/debian-9.12-keyboardtester/vmlinuz initrd=initrd.img boot=nfs nfsroot=${PXE_SERVER}:/srv/nfs/debian-9.12-keyboardtester ||
+goto error
+
+
+### SHUT DOWN AND REBOOT SUBMENUS ###
+
+:shutdown-menu
+menu Are you sure you want to shut down this computer?
+item --gap
+item --key Y shutdown-confirm   [Y] Shut Down
+item --key N shutdown-cancel    [N] Don't Shut Down
+choose --timeout 5000 shutdown-menu-selection && goto ${shutdown-menu-selection} || goto error
+
+:shutdown-confirm
+echo
+echo Shutting Down...
+echo
+poweroff || goto error
+
+:shutdown-cancel
+echo
+echo Canceled Shut Down
+echo
+echo Reloading Main Menu Momentarily...
+sleep 1
+echo
+goto main-menu
+
+
+:reboot-menu
+menu Are you sure you want to reboot this computer?
+item --gap
+item --key Y reboot-confirm     [Y] Reboot
+item --key N reboot-cancel      [N] Don't Reboot
+choose --timeout 5000 reboot-menu-selection && goto ${reboot-menu-selection} || goto error
+
+:reboot-confirm
+echo
+echo Rebooting...
+echo
+reboot || goto error
+
+:reboot-cancel
+echo
+echo Canceled Reboot
+echo
+echo Reloading Main Menu Momentarily...
+sleep 1
+echo
+goto main-menu
+
+
+### ADVANCED UTILITIES SUBMENU ###
+
+:advanced-utilities-submenu
+menu Advanced Utilities
+item --gap
+item --key < main-menu                                          < Return to Main Menu
+item --gap
+item --gap
+item --key L production-live-rescue-mint-cinnamon               [L] ${PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+item --key T production-live-rescue-mint-cli                    [T] ${PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE}
+iseq ${platform} pcbios && item --key D live-rescue-debian      [D] ${LIVE_RESCUE_DEBIAN_TITLE}         || item --gap [D] ${LIVE_RESCUE_DEBIAN_TITLE} *
+item --gap
+item --key W production-windows-recovery-environment            [W] ${PRODUCTION_WINDOWS_RECOVERY_TITLE}
+item --gap
+item --key P partedmagic                                        [P] ${PARTEDMAGIC_TITLE}
+item --key G gparted                                            [G] ${GPARTED_TITLE}
+item --key C clonezilla                                         [C] ${CLONEZILLA_TITLE}
+iseq ${platform} pcbios && item --key N ntpasswd-submenu        [N] Windows Reset Password (NTPasswd) > || item --gap [N] Windows Reset Password (NTPasswd) *
+item --gap
+iseq ${platform} pcbios && item --key B bios-updates-submenu    [B] TESTING - BIOS Updates >            || item --gap [B] TESTING - BIOS Updates *
+iseq ${platform} efi && item --gap ||
+iseq ${platform} efi && item --gap ||
+iseq ${platform} efi && item --gap                              ${BIOS_ONLY_TOOLS_NOTE} ||
+choose --default production-live-rescue-mint-cinnamon ts-menu-selection && goto ${ts-menu-selection} || goto error
+
+:production-live-rescue-mint-cinnamon
+echo
+echo ${PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+echo
+params
+param title ${PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+param distro mint-live-rescue
+param version ${PRODUCTION_LIVE_RESCUE_MINT_VERSION}
+param memsize ${memsize}
+param platform ${platform}
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:production-live-rescue-mint-cli
+echo
+echo ${PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE}
+echo
+params
+param title ${PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE}
+param distro mint-live-rescue
+param version ${PRODUCTION_LIVE_RESCUE_MINT_VERSION}
+param memsize ${memsize}
+param platform ${platform}
+param extra_args 3
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:live-rescue-debian
+echo
+echo ${LIVE_RESCUE_DEBIAN_TITLE}
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-debian-live-rescue/initrd.img || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-debian-live-rescue/vmlinuz boot=live config quiet netboot=nfs nfsroot=/srv/nfs/techsupport-debian-live-rescue live-config.username=tsbackup ||
+goto error
+
+:production-windows-recovery-environment
+echo
+echo ${PRODUCTION_WINDOWS_RECOVERY_TITLE}
+# See ":testing-install-windows" for info about wimboot setup and configuration.
+echo
+echo
+echo Downloading Windows Recovery Environment Scripts...
+echo
+initrd -n winpeshl.ini --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/winpeshl-RecEnv.ini winpeshl.ini || goto error
+echo
+echo
+echo Downloading Windows Recovery Environment Image...
+iseq ${platform} pcbios && echo PLEASE NOTE: This will take about 3 minutes in Legacy BIOS mode. || echo PLEASE NOTE: This will take about 10 seconds in UEFI mode.
+echo
+initrd -n boot.wim ${TFTP_OR_HTTP}://${PXE_SERVER}/windows/${PRODUCTION_WINPE_IMAGE_NAME}.wim boot.wim || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/wimboot gui quiet ||
+goto error
+
+:partedmagic
+echo
+echo ${PARTEDMAGIC_TITLE}
+# Setup using the "iPXE > Download using Wget" instructions from: https://partedmagic.com/pxe/
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/pmagic/initrd.img || goto error
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/pmagic/fu.img || goto error
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/pmagic/m.img || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/pmagic/bzImage initrd=initrd.img initrd=fu.img initrd=m.img edd=on vga=normal netsrc=wget neturl="http://${PXE_SERVER}/pmagic/pmodules/" netargs="-U pmagicboot" ||
+goto error
+
+:gparted
+echo
+echo ${GPARTED_TITLE}
+# Setup using instructions from: https://gparted.org/livepxe.php
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/gparted/initrd.img || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/gparted/vmlinuz initrd=initrd.img boot=live config components union=overlay username=user noswap noeject vga=788 fetch=http://${PXE_SERVER}/gparted/filesystem.squashfs ||
+goto error
+
+:clonezilla
+echo
+echo ${CLONEZILLA_TITLE}
+# Setup using instructions from: https://clonezilla.org/livepxe.php
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/clonezilla/initrd.img || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/clonezilla/vmlinuz initrd=initrd.img boot=live username=user union=overlay config components quiet noswap edd=on nomodeset nodmraid locales= keyboard-layouts= ocs_live_run="ocs-live-general" ocs_live_extra_param="" ocs_live_batch=no net.ifnames=0 nosplash noprompt fetch=http://${PXE_SERVER}/clonezilla/filesystem.squashfs ||
+goto error
+
+
+### NTPASSWD VERSIONS SUBMENU ###
+
+:ntpasswd-submenu
+menu Choose Desired Windows Reset Password (NTPasswd) Version
+item --gap
+item --key < advanced-utilities-submenu     < Return to Advanced Utilities Menu
+item --gap
+item --gap
+item --gap                                  PLEASE NOTE: NTPasswd Version 2014-02-01 May Kernel Panic (No init found) on Boot
+item --gap
+item ntpasswd-140201                        NTPasswd Version 2014-02-01
+item ntpasswd-110511                        NTPasswd Version 2011-05-11
+choose --default ntpasswd-140201 ntpasswd-menu-selection && goto ${ntpasswd-menu-selection} || goto error
+
+:ntpasswd-140201
+echo
+echo Windows Reset Password (NTPasswd Version 2014-02-01)
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/ntpasswd-140201.iso || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
+goto error
+
+:ntpasswd-110511
+echo
+echo Windows Reset Password (NTPasswd Version 2011-05-11)
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/ntpasswd-110511.iso || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
+goto error
+
+
+### BIOS UPDATES SUBMENU ###
+
+:bios-updates-submenu
+menu TESTING - BIOS Updates
+item --gap
+item --key < advanced-utilities-submenu     < Return to Advanced Utilities Menu
+item --gap
+item --gap
+item freedos-12                             FreeDOS (1.2 Full)
+item freedos-13                             FreeDOS (1.3 RC3 Full)
+item --gap
+item dell-E6430                             Dell Latitude E6430
+item --gap
+item --gap                                  MORE TO COME...
+choose --default freedos-12 ts-bios-updates-menu-selection && goto ${ts-bios-updates-menu-selection} || goto error
+
+:freedos-12
+echo
+echo FreeDOS (1.2 Full)
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-bios-updates/FD12FULL.zip || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 raw ||
+goto error
+
+:freedos-13
+echo
+echo FreeDOS (1.3 RC3 Full)
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-bios-updates/FD13RC3FULL.zip || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 raw ||
+goto error
+
+:dell-E6430
+echo
+echo Dell Latitude E6430
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-bios-updates/E6430.img || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 raw ||
+goto error
+
+
+### I.T. TESTING SUBMENU ###
+
+:it-testing-submenu-incorrect-password
+clear password
+echo
+echo Incorrect Password for I.T. Testing Submenu
+echo
+echo Reloading Main Menu Momentarily...
+sleep 1
+echo
+goto main-menu
+
+:it-testing-submenu
+set username I.T. Person
+login ||
+iseq ${password} ${IT_TESTING_SUBMENU_PASSWORD} || goto it-testing-submenu-incorrect-password
+
+menu I.T. Testing
+item --gap
+item --key < main-menu                                      < Return to Main Menu
+item --gap
+item --gap
+item --key I testing-install-mint-cinnamon                  [I] ${TESTING_INSTALL_MINT_CINNAMON_TITLE}
+item --key L testing-live-mint-cinnamon                     [L] ${TESTING_LIVE_MINT_CINNAMON_TITLE}
+item --gap
+item --key W testing-install-windows                        [W] ${TESTING_INSTALL_WINDOWS_TITLE}
+item --gap
+item --key M testing-live-rescue-mint-cinnamon              [M] ${TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+item --key T testing-live-rescue-mint-cli                   [T] ${TESTING_LIVE_RESCUE_MINT_CLI_TITLE}
+item --gap
+item --key R force-reload                                   [R] Reload iPXE Menu
+iseq ${platform} efi && item --key F force-switch-platform  [F] Force Load Legacy BIOS iPXE Menu || item --key F force-switch-platform [F] Force Load UEFI iPXE Menu
+item --gap
+item --key S ipxe-shell                                     [S] iPXE Shell
+iseq ${platform} efi && item --key U uefi-shell             [U] UEFI Shell ||
+item --gap
+item --gap
+item --gap                                                  MAC: ${mac}
+item --gap                                                  IP: ${ip}
+item --gap                                                  Subnet: ${netmask}
+item --gap                                                  Gateway: ${gateway}
+item --gap                                                  DNS: ${dns}
+item --gap                                                  Domain: ${domain}
+choose --default testing-install-mint-cinnamon it-menu-selection && goto ${it-menu-selection} ||
+goto error
+
+:testing-install-mint-cinnamon
+echo
+echo ${TESTING_INSTALL_MINT_CINNAMON_TITLE}
+echo
+params # Don't include memsize param so it'll always prompt for toram or not (even though that was just for Mint 19 debugging and will now always prompt no matter what on Mint 20 and newer).
+param title ${TESTING_INSTALL_MINT_CINNAMON_TITLE}
+param version ${TESTING_MINT_VERSION}
+param preseed testing-ubiquity
+param platform ${platform}
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:testing-live-mint-cinnamon
+echo
+echo ${TESTING_LIVE_MINT_CINNAMON_TITLE}
+echo
+params # Don't include memsize param so it'll always prompt for toram or not (even though that was just for Mint 19 debugging and will now always prompt no matter what on Mint 20 and newer).
+param title ${TESTING_LIVE_MINT_CINNAMON_TITLE}
+param version ${TESTING_MINT_VERSION}
+param preseed testing-liveboot
+param platform ${platform}
+#param extra_args memtest=17
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:testing-install-windows
+echo
+echo ${TESTING_INSTALL_WINDOWS_TITLE}
+
+# Resources: https://ipxe.org/wimboot & https://ipxe.org/howto/winpe
+# wimboot filename requirements: https://github.com/ipxe/wimboot/issues/11
+# "BCD" and "boot.sdi" info: https://github.com/ipxe/wimboot/issues/10
+
+echo
+echo
+echo Downloading Windows Preinstallation Environment Installation Scripts...
+echo
+
+# "winpeshl.ini" and "Install Windows.ps1" are included in WinPE image but can be overwritten by iPXE here when testing updates.
+#initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/winpeshl.ini                                           winpeshl.ini || goto error
+#initrd --timeout 3000 -n InstallWindows.ps1 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/testing/Install%20Windows.ps1    InstallWindows.ps1 || goto error
+
+# Including the "TESTING" file here puts the "Install Windows.ps1" script into Test Mode:
+initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/testing/TESTING TESTING || goto error
+
+echo
+echo
+echo Downloading Windows Preinstallation Environment Image...
+iseq ${platform} pcbios && echo PLEASE NOTE: This will take about 3 minutes in Legacy BIOS mode. || echo PLEASE NOTE: This will take about 10 seconds in UEFI mode.
+echo
+initrd -n boot.wim ${TFTP_OR_HTTP}://${PXE_SERVER}/windows/${TESTING_WINPE_IMAGE_NAME}.wim      boot.wim || goto error
+echo
+
+# Manually loading "BCD" and "boot.sdi" is no longer necessary with wimboot 2.7+ and WinRE, but keep the files on the server and these lines on hand if ever testing with WinPE.
+#initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/windows/BCD         BCD || goto error
+#initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/windows/boot.sdi    boot.sdi || goto error
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/wimboot gui quiet ||
+goto error
+
+:testing-live-rescue-mint-cinnamon
+echo
+echo ${TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+echo
+params
+param title ${TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+param distro mint-live-rescue
+param version ${TESTING_LIVE_RESCUE_MINT_VERSION}
+param memsize ${memsize}
+param platform ${platform}
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:testing-live-rescue-mint-cli
+echo
+echo ${TESTING_LIVE_RESCUE_MINT_CLI_TITLE}
+echo
+params
+param title ${TESTING_LIVE_RESCUE_MINT_CLI_TITLE}
+param distro mint-live-rescue
+param version ${TESTING_LIVE_RESCUE_MINT_VERSION}
+param memsize ${memsize}
+param platform ${platform}
+param extra_args 3
+boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
+goto error
+
+:force-reload
+boot --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/boot/menu.ipxe || goto error
+
+:force-switch-platform
+iseq ${platform} efi && set platform pcbios || set platform efi
+goto force-reload
+
+:ipxe-shell
+console --left 100 --right 100 --top 35 --picture ${TFTP_OR_HTTP}://${PXE_SERVER}/boot/ipxe-freegeek-background-shell.png ||
+echo
+echo config > Browse iPXE Configuration Settings
+echo help > Display List of Available Commands
+echo exit > Return to Main Menu
+echo
+shell || goto error
+goto load
+
+:uefi-shell
+# From: http://boot.ipxe.org/Shell.efi
+# Built From: https://github.com/tianocore/edk2/ Using "build -a X64 -p ShellPkg/ShellPkg.dsc"
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/uefi-shell.efi || goto error

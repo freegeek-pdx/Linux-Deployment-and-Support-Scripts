@@ -1,0 +1,64 @@
+#
+# MIT License
+#
+# Copyright (c) 2022 Free Geek
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+
+# https://help.ubuntu.com/lts/installation-guide/s390x/apbs04.html
+
+# Mint's default preseed includes apt-setup/extras by default
+d-i apt-setup/extras boolean true
+
+# Set Locale, Keyboard, Time
+d-i debian-installer/locale string en_US
+d-i console-setup/ask_detect boolean false
+d-i keyboard-configuration/layoutcode string us
+d-i keyboard-configuration/xkb-keymap select us
+d-i clock-setup/utc boolean true
+d-i time/zone string US/Pacific
+d-i clock-setup/ntp boolean true
+
+# Launch QA Helper and set install/grub disk
+d-i partman/early_command string /cdrom/preseed/production-ubiquity-verify.sh
+
+# Overwrite old RAIDs and LVMs
+d-i partman-md/device_remove_md boolean true
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+
+# Overwrite install disk to a single regular partition and don't confirm again since user already confirmed in early_command
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm_nooverwrite boolean true
+d-i partman/confirm boolean true
+d-i partman-md/confirm boolean true
+
+# Setup OEM (Free Geek) User (username MUST be "oem" for "oem-config-prepare" to work)
+d-i passwd/user-fullname string Free Geek
+d-i passwd/username string oem
+d-i passwd/user-password password freegeek
+d-i passwd/user-password-again password freegeek
+d-i user-setup/allow-password-weak boolean true
+d-i passwd/auto-login boolean true
+
+# Set Hostname (will be changed to include serial and model in success_command)
+d-i netcfg/get_hostname string FreeGeek-LinuxMint
+
+# Run Fixes, Updates, Install Packages
+ubiquity ubiquity/success_command string /cdrom/preseed/production-ubiquity-finish.sh
+
+d-i ubiquity/summary note
+ubiquity ubiquity/reboot boolean true
