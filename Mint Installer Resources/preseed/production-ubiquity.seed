@@ -14,10 +14,13 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# https://help.ubuntu.com/lts/installation-guide/s390x/apbs04.html
+# https://web.archive.org/web/20201112004631/https://help.ubuntu.com/lts/installation-guide/s390x/apbs04.html
 
 # Mint's default preseed includes apt-setup/extras by default
 d-i apt-setup/extras boolean true
+
+# The following "use_nonfree" settings is now required in Mint 21 to bypass "Multimedia codecs" prompt: https://github.com/linuxmint/mint21-beta/issues/34
+ubiquity ubiquity/use_nonfree boolean true
 
 # Set Locale, Keyboard, Time
 d-i debian-installer/locale string en_US

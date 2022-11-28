@@ -2,7 +2,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 01/17/22
+# Last Updated: 11/23/22
 #
 # MIT License
 #
@@ -22,6 +22,30 @@
 if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" == '/home/mint' ]]; then # Only run if fully logged in as "mint" user.
     readonly SETUP_MLR_PID="$$"
     echo -e "\n${SETUP_MLR_PID}: STARTED SETUP MINT LIVE RESCUE AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
+
+
+    if grep -qF ' ip=dhcp ' '/proc/cmdline'; then
+        # NOTE: When PXE/net booting Mint 21 (but not USB booting), the primary Ethernet connection DOES NOT load a DNS server, so any network calls using URLs fail (such as to download QA Helper).
+        # The exact issue is described here, but without a solution: https://serverfault.com/questions/1104238/no-dns-on-pxe-booted-linux-live-system-with-networkmanager
+        # (Using the kernel args mentioned in the above post to set a DNS server doesn't work, and every other possible kernel arg I could find for specifying DNS servers also didn't work.)
+        # Interestingly, I was not able to find any other mention of this issue in all my Googling even though that post mentions running into the issue on Debian and through
+        # testing I found that the issue started with Ubuntu 21.04 (Mint 19.X was based on Ubuntu 20.04 and Mint 20.X is based on Ubuntu 22.04), so it must affect many systems.
+        # I also found that this issue seems to be tied to using the "ip=dhcp" kernel argument since when I added that argument on a USB boot the same DNS issue occurred.
+        # But, the "ip=dhcp" kernel argument is required for PXE/net booting to be able to download the filesystem over NFS as of Ubuntu 19.10 (https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018).
+        # So, since "ip=dhcp" is required when PXE/net booting, this DNS issue must be worked around to be able to properly load the network on Mint 21.
+        # Interestingly, any subsequent connections (such as Wi-Fi) load a DNS server just fine, and turning Ethernet off and back on also allows it to properly load DNS.
+        # But, when running over the network, disabling the network even for a moment can at best cause the system to hang for a couple minutes and at worst can cause it to hang indefinitely, so that is not a feasible workaround.
+        # Instead, we will directly specify a DNS server once the system has fully booted, which makes the nework immediate start working.
+        # Below, the local Free Geek DNS server is assigned for every available network connection on the system (just to be completely thorough since setting DNS for any inactive connnections doesn't hurt).
+        # It would also be possible to use "resolvectl dns" to set the DNS server, but since I'm getting the interface names from "nmcli", I'll continue using "nmcli" to set the DNS server.
+
+        IFS=$'\n'
+        for this_network_interface_name in $(nmcli -t -f NAME connection show); do
+            echo -e "${SETUP_MLR_PID}:\tMANUALLY SETTING DNS SERVER FOR \"${this_network_interface_name}\" AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
+            nmcli connection modify "${this_network_interface_name}" ipv4.dns '192.168.253.11' # Local Free Geek DNS server IP.
+        done
+        unset IFS
+    fi
 
 
     # DELETE INSTALL OS LAUNCHERS
@@ -50,7 +74,7 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
         # TURN OFF X SCREEN SLEEPING (just in case, but the following gsettings should handle it all)
         xset s noblank
         xset s off -dpms
-        
+
         if ! pidof cinnamon &> /dev/null; then
             sleep 1
             
@@ -120,14 +144,14 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
     fi
     
 
-    if ! grep -q ' fg-no-auto-wifi ' '/proc/cmdline'; then # CHECK FOR BOOT OPTION TO NOT AUTOMATICALLY CONNECT TO WI-FI FOR USB BOOT USAGE IN SDA
+    if ! grep -qF ' fg-no-auto-wifi ' '/proc/cmdline'; then # CHECK FOR BOOT OPTION TO NOT AUTOMATICALLY CONNECT TO WI-FI FOR USB BOOT USAGE IN SDA
 
         # WAIT A BIT BEFORE TRYING TO CONNET TO WI-FI ETC
         sleep 5
         
 
         # CONNECT TO WI-FI
-        if nmcli device status | grep -q ' wifi ' && ! nmcli device status | grep ' FG Reuse\| Free Geek' | grep -q ' connected '; then
+        if nmcli device status | grep -qF ' wifi ' && ! nmcli device status | grep ' FG Reuse\| Free Geek' | grep -qF ' connected '; then
             echo -e "${SETUP_MLR_PID}:\tCONNECTING TO WI-FI AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
 
             # Try to connect to "FG Reuse" (which may not always be close enough) for faster Wi-Fi that can also connect to fglan (useful for "toram" network live boots that can continue after being disconnected from Ethernet).
@@ -139,7 +163,7 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
         
 
         # SET CORRECT TIME
-        if ! timedatectl status | grep -q 'Time zone: America/Los_Angeles'; then
+        if ! timedatectl status | grep -qF 'Time zone: America/Los_Angeles'; then
             echo -e "${SETUP_MLR_PID}:\tSETTING TIMEZONE AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
 
             # Make sure proper time is set so https download works.
@@ -147,7 +171,7 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
             timedatectl set-ntp true &> /dev/null
         fi
         
-        if timedatectl status | grep -q 'System clock synchronized: no'; then
+        if timedatectl status | grep -qF 'System clock synchronized: no'; then
             echo -e "${SETUP_MLR_PID}:\tSTARTING WAIT FOR TIME TO SYNC AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
             
             timedatectl set-ntp false &> /dev/null # Turn time syncing off and then
@@ -156,7 +180,7 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
             for wait_for_time_sync_seconds in {1..30}; do # Wait up to 30 seconds for time to sync becuase download can stall if time changes in the middle of it.
                 sleep 1
                 
-                if timedatectl status | grep -q 'System clock synchronized: yes'; then
+                if timedatectl status | grep -qF 'System clock synchronized: yes'; then
                     break
                 fi
             done
@@ -164,7 +188,7 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
             echo -e "${SETUP_MLR_PID}:\tFINISHED WAIT FOR TIME TO SYNC AFTER ${wait_for_time_sync_seconds} SECONDS AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
         fi
         
-        if timedatectl status | grep -q 'System clock synchronized: yes'; then
+        if timedatectl status | grep -qF 'System clock synchronized: yes'; then
             echo -e "${SETUP_MLR_PID}:\tTIME SYNCED & SETTING BIOS CLOCK AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
             
             # Update hardware (BIOS) clock with synced system time.

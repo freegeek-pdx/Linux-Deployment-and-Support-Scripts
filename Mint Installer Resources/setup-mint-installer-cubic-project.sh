@@ -36,18 +36,18 @@ if [[ "$(hostname)" != 'cubic' ]]; then
     fi
 
     echo -e "\n>>> $(which cubic &> /dev/null && echo 'UPDATING' || echo 'INSTALLING') CUBIC <<<\n"
-    sudo apt install --no-install-recommends cubic
+    sudo apt install --no-install-recommends cubic || echo 'UPDATE ERROR - CONTINUING ANYWAY'
 
 
     # SETUP CUBIC PROJECT
 
-    os_version='20.3'
-    os_codename='Una'
+    os_version='21'
+    os_codename='Vanessa'
     version_suffix=''
     build_date="$(date '+%y.%m.%d')"
 
     cubic_project_parent_path="${HOME}/Documents/Free Geek"
-    cubic_project_path="${cubic_project_parent_path}/Linux Mint ${os_version} Cinnamon${version_suffix} Updated 20${build_date}"
+    cubic_project_path="${cubic_project_parent_path}/Linux Mint ${os_version} Cinnamon${version_suffix//-/ } Updated 20${build_date}"
     cubic_project_disk_path="${cubic_project_path}/custom-disk"
     cubic_project_root_path="${cubic_project_path}/custom-root"
 
@@ -56,7 +56,7 @@ if [[ "$(hostname)" != 'cubic' ]]; then
 
         mkdir -p "${cubic_project_path}"
 
-        cubic_conf_version='2021.12-69-release~202201160230~ubuntu20.04.1'
+        cubic_conf_version='2022.06-72-release~202206302224~ubuntu22.04.1'
         # IMPORTANT: This cubic_conf_version should be set to a version of Cubic that is known the be compatible with the following "cubic.conf" format.
         # The currently installed Cubic version can be retrieved with "dpkg-query --show cubic" (or by copy-and-pasting it from a new "cubic.conf" file made by Cubic).
         # If the "cubic.conf" format is ever changed in the future, having this previous Cubic version listed in the "cubic.conf" file will let Cubic know that it needs to be migrated (and will show a screen like this: https://github.com/PJ-Singh-001/Cubic/wiki/Migrate-Page).
@@ -74,7 +74,7 @@ modify_date = ${current_timestamp}
 directory = ${cubic_project_path}
 
 [Original]
-iso_file_name = linuxmint-${os_version}-cinnamon-64bit.iso
+iso_file_name = linuxmint-${os_version}-cinnamon-64bit${version_suffix}.iso
 iso_directory = ${cubic_project_parent_path}
 iso_volume_id = Linux Mint ${os_version} Cinnamon 64-bit
 iso_release_name = ${os_codename}
@@ -82,11 +82,11 @@ iso_disk_name = Linux Mint ${os_version} "${os_codename}" - Release amd64
 
 [Custom]
 iso_version_number = 20${build_date}
-iso_file_name = linuxmint-${os_version}-cinnamon-64bit-updated-${build_date}.iso
+iso_file_name = linuxmint-${os_version}-cinnamon-64bit${version_suffix}-updated-${build_date}.iso
 iso_directory = ${cubic_project_path}
 iso_volume_id = Linux Mint ${os_version} Cinnamon 64-bit
 iso_release_name = ${os_codename} - Updated 20${build_date}
-iso_disk_name = Linux Mint ${os_version} Cinnamon 64-bit "${os_codename} - Updated 20${build_date}"
+iso_disk_name = Linux Mint ${os_version} Cinnamon 64-bit${version_suffix//-/ } "${os_codename} - Updated 20${build_date}"
 
 [Status]
 is_success_copy = False
@@ -110,14 +110,20 @@ CUBIC_CONF_EOF
 
     nohup cubic "${cubic_project_path}" &> /dev/null & disown
 
+    while [[ "$(wmctrl -l)"$'\n' != *$' cubic\n'* ]]; do
+        sleep 1
+    done
+    
+    wmctrl -r 'cubic' -e '0,0,0,-1,-1'
+
     until grep -qxF 'is_success_copy = True' "${cubic_project_path}/cubic.conf" && grep -qxF 'is_success_extract = True' "${cubic_project_path}/cubic.conf" && grep -qxF 'casper_directory = casper' "${cubic_project_path}/cubic.conf" && grep -qxF 'squashfs_file_name = filesystem' "${cubic_project_path}/cubic.conf"; do
         echo -e '\n>>> WAITING FOR CUBIC TO EXTRACT ORIGINAL ISO <<<\n>>> CLICK "NEXT" TWICE IN CUBIC <<<\n'
         sleep 5
     done
 
-    custom_installer_resources_path="$(cd "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd -P)"
+    custom_installer_resources_path="$(cd "${BASH_SOURCE[0]%/*}" &> /dev/null && pwd -P)"
 
-    if ! WIFI_PASSWORD="$(cat "${custom_installer_resources_path}/FG Reuse Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
+    if ! WIFI_PASSWORD="$(< "${custom_installer_resources_path}/FG Reuse Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
         echo 'FAILED TO GET WI-FI PASSWORD'
         exit 1
     fi
@@ -125,7 +131,7 @@ CUBIC_CONF_EOF
 
     cp -f "${custom_installer_resources_path}/preseed/"* "${cubic_project_disk_path}/preseed/"
     # AFTER COPYING SCRIPTS, "production-ubiquity-verify.sh" NEEDS WI-FI PASSWORD PLACEHOLDER REPLACED WITH THE ACTUAL OBFUSCATED WI-FI PASSWORD.
-    sed -i "s/'\[SETUP SCRIPT WILL REPLACE THIS PLACEHOLDER WITH OBFUSCATED WI-FI PASSWORD\]'/\"\$(base64 -d <<< '$(echo -n "${WIFI_PASSWORD}" | base64)')\"/" "${cubic_project_disk_path}/preseed/production-ubiquity-verify.sh"
+    sed -i "s/'\[SETUP SCRIPT WILL REPLACE THIS PLACEHOLDER WITH OBFUSCATED WI-FI PASSWORD\]'/\"\$(echo '$(echo -n "${WIFI_PASSWORD}" | base64)' | base64 -d)\"/" "${cubic_project_disk_path}/preseed/production-ubiquity-verify.sh"
 
     rm -rf "${cubic_project_disk_path}/preseed/dependencies"
     cp -rf "${custom_installer_resources_path}/dependencies" "${cubic_project_disk_path}/preseed/dependencies"
@@ -148,7 +154,7 @@ CUBIC_CONF_EOF
         sleep 5
     done
 
-    until [[ -f "${cubic_project_path}/linuxmint-${os_version}-cinnamon-64bit-updated-${build_date}.iso" ]] && grep -qxF "iso_checksum_file_name = linuxmint-${os_version}-cinnamon-64bit-updated-${build_date}.md5" "${cubic_project_path}/cubic.conf"; do
+    until [[ -f "${cubic_project_path}/linuxmint-${os_version}-cinnamon-64bit${version_suffix}-updated-${build_date}.iso" ]] && grep -qxF "iso_checksum_file_name = linuxmint-${os_version}-cinnamon-64bit${version_suffix}-updated-${build_date}.md5" "${cubic_project_path}/cubic.conf"; do
         echo -e '\n>>> CUBIC TERMINAL COMMANDS COMPLETED <<<\n>>> CLICK "NEXT" 3 TIMES AND THEN CLICK "GENERATE" TO CREATE THE ISO <<<\n'
         sleep 5
     done

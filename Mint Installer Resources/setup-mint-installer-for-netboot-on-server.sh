@@ -24,7 +24,7 @@ set -ex
 
 only_update_scripts="$([[ "$1" == 'scripts' ]] && echo 'true' || echo 'false')"
 
-os_version='20.3'
+os_version='21'
 version_suffix=''
 desktop='cinnamon'
 
@@ -37,7 +37,7 @@ source_iso_path="$(ls -t "/srv/setup-resources/images/linuxmint-${os_version}-${
 #source_iso_path="/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}.iso"
 #source_iso_path="/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}-updated-YY.MM.DD.iso"
 
-custom_installer_resources_path="$(cd "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd -P)"
+custom_installer_resources_path="$(cd "${BASH_SOURCE[0]%/*}" &> /dev/null && pwd -P)"
 
 custom_installer_preseed_path="${custom_installer_resources_path}/preseed"
 custom_installer_dependencies_path="${custom_installer_resources_path}/dependencies"
@@ -70,7 +70,7 @@ fi
 chmod u+w "${output_nfs_path}" "${output_nfs_path}/preseed"
 
 if [[ "${desktop}" == 'cinnamon' ]]; then
-    if ! WIFI_PASSWORD="$(cat "${custom_installer_resources_path}/FG Reuse Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
+    if ! WIFI_PASSWORD="$(< "${custom_installer_resources_path}/FG Reuse Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
         echo 'FAILED TO GET WI-FI PASSWORD'
         exit 1
     fi
@@ -78,7 +78,7 @@ if [[ "${desktop}" == 'cinnamon' ]]; then
 
     cp -f "${custom_installer_preseed_path}/production-ubiquity"* "${output_nfs_path}/preseed/"
     # AFTER COPYING SCRIPTS, "production-ubiquity-verify.sh" NEEDS WI-FI PASSWORD PLACEHOLDER REPLACED WITH THE ACTUAL OBFUSCATED WI-FI PASSWORD.
-    sed -i "s/'\[SETUP SCRIPT WILL REPLACE THIS PLACEHOLDER WITH OBFUSCATED WI-FI PASSWORD\]'/\"\$(base64 -d <<< '$(echo -n "${WIFI_PASSWORD}" | base64)')\"/" "${output_nfs_path}/preseed/production-ubiquity-verify.sh"
+    sed -i "s/'\[SETUP SCRIPT WILL REPLACE THIS PLACEHOLDER WITH OBFUSCATED WI-FI PASSWORD\]'/\"\$(echo '$(echo -n "${WIFI_PASSWORD}" | base64)' | base64 -d)\"/" "${output_nfs_path}/preseed/production-ubiquity-verify.sh"
 
     cp -f "${output_nfs_path}/preseed/production-ubiquity.seed" "${output_nfs_path}/preseed/testing-ubiquity.seed"
     sed -i 's|preseed/production-|preseed/testing-|' "${output_nfs_path}/preseed/testing-ubiquity.seed"
@@ -105,4 +105,4 @@ tar -xzf "${output_nfs_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz
 rm -f "${output_nfs_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz"
 chmod +x "${output_nfs_path}/preseed/dependencies/xterm" "${output_nfs_path}/preseed/dependencies/stress-ng" "${output_nfs_path}/preseed/dependencies/cheese" "${output_nfs_path}/preseed/dependencies/java-jre/bin/java" "${output_nfs_path}/preseed/dependencies/java-jre/bin/keytool" "${output_nfs_path}/preseed/dependencies/java-jre/lib/jexec" "${output_nfs_path}/preseed/dependencies/java-jre/lib/jspawnhelper"
 
-echo -e '\nDONE SETTING UP MINT INSTALLER FOR NETBOOT\n'
+echo -e "\nDONE SETTING UP MINT ${os_version} INSTALLER FOR NETBOOT\n"

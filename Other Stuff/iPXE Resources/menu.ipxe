@@ -28,44 +28,41 @@ iseq ${platform} pcbios && set TFTP_OR_HTTP tftp || set TFTP_OR_HTTP http
 # NOTE: UEFI boots required "initrd=[INITRD-FILENAME]" as a kernel parameter to boot properly. This is not required (but does not cause problems) for BIOS boots.
 # NOTE: Ubuntu 19.10 (Mint 20) or newer requires "ip=dhcp" as boot arg: https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018
 
-set PRODUCTION_MINT_VERSION                     20.3
-set TESTING_MINT_VERSION                        20.3
+set PRODUCTION_MINT_VERSION                     21
+set TESTING_MINT_VERSION                        21
 
-set PRODUCTION_LIVE_RESCUE_MINT_VERSION         20.3
-set TESTING_LIVE_RESCUE_MINT_VERSION            20.3
+set PRODUCTION_LIVE_RESCUE_MINT_VERSION         21
+set TESTING_LIVE_RESCUE_MINT_VERSION            21
 
-set PRODUCTION_WINDOWS_MAJOR_VERSION            10
-set PRODUCTION_WINDOWS_FEATURE_VERSION          November 2021 Update, 21H2
-set TESTING_WINDOWS_MAJOR_VERSION               11
-set TESTING_WINDOWS_FEATURE_VERSION             Version 21H2, Build 22000
+set PRODUCTION_WINDOWS_FEATURE_VERSION          2022 Update, 22H2
+set TESTING_WINDOWS_FEATURE_VERSION             2022 Update, 22H2
 
-set PRODUCTION_WINPE_IMAGE_NAME                 WinRE-10-21H2
-set TESTING_WINPE_IMAGE_NAME                    WinRE-10-21H2
+set PRODUCTION_WINPE_IMAGE_NAME                 WinRE-11-22H2
+set TESTING_WINPE_IMAGE_NAME                    WinRE-11-22H2
 
 set PRODUCTION_INSTALL_MINT_CINNAMON_TITLE      Test/Install Linux Mint ${PRODUCTION_MINT_VERSION} (Cinnamon)
 set PRODUCTION_LIVE_MINT_CINNAMON_TITLE         Live Boot Linux Mint ${PRODUCTION_MINT_VERSION} (Cinnamon)
-set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows ${PRODUCTION_WINDOWS_MAJOR_VERSION} Pro (${PRODUCTION_WINDOWS_FEATURE_VERSION})
+set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows 10 Pro (${PRODUCTION_WINDOWS_FEATURE_VERSION})
 
 set HDT_TITLE                                   Hardware Detection Tool (0.5.2)
 set HDS_DOS_TITLE                               Hard Disk Sentinel (DOS Edition 1.21)
-set MEMTEST_UEFI_TITLE                          RAM Stress Test (MemTest86 Version 9.3)
-set MEMTEST_BIOS_TITLE                          RAM Stress Test (Memtest86+)
+set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 10)
+set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 6)
 set KEYBOARD_TESTER_TITLE                       Keyboard and Mouse Tester
 
 set PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE  Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} Cinnamon)
 set PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE       Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} CLI)
-set LIVE_RESCUE_DEBIAN_TITLE                    LEGACY Live Rescue (Debian 7)
-set PRODUCTION_WINDOWS_RECOVERY_TITLE           Windows ${PRODUCTION_WINDOWS_MAJOR_VERSION} Recovery Environment (${PRODUCTION_WINDOWS_FEATURE_VERSION})
+set PRODUCTION_WINDOWS_RECOVERY_TITLE           Windows 11 Recovery Environment (${PRODUCTION_WINDOWS_FEATURE_VERSION})
 set PARTEDMAGIC_TITLE                           Parted Magic (2021_02_28)
-set GPARTED_TITLE                               GParted (1.3.1-1)
-set CLONEZILLA_TITLE                            Clonezilla (2.7.2-39)
+set GPARTED_TITLE                               GParted (1.4.0-5)
+set CLONEZILLA_TITLE                            Clonezilla (3.0.1-8)
 
 set BIOS_ONLY_TOOLS_NOTE                        * Starred tools are not compatible with UEFI. Reboot in Legacy BIOS mode to use them.
 
 set IT_TESTING_SUBMENU_PASSWORD                 password
 set TESTING_INSTALL_MINT_CINNAMON_TITLE         TEST MODE: Test/Install Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
 set TESTING_LIVE_MINT_CINNAMON_TITLE            TEST MODE: Live Boot Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
-set TESTING_INSTALL_WINDOWS_TITLE               TEST MODE: Install Windows ${TESTING_WINDOWS_MAJOR_VERSION} Pro (${TESTING_WINDOWS_FEATURE_VERSION})
+set TESTING_INSTALL_WINDOWS_TITLE               TEST MODE: Install Windows 10 or 11 Pro (${TESTING_WINDOWS_FEATURE_VERSION})
 set TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE     TEST MODE: Live Rescue (Mint ${TESTING_LIVE_RESCUE_MINT_VERSION} Cinnamon)
 set TESTING_LIVE_RESCUE_MINT_CLI_TITLE          TEST MODE: Live Rescue (Mint ${TESTING_LIVE_RESCUE_MINT_VERSION} CLI)
 
@@ -86,13 +83,9 @@ console --left 100 --right 100 --top 35 --picture ${TFTP_OR_HTTP}://${PXE_SERVER
 
 # Send RAM Testing Stations in Hardware Testing straight to memtest:
 iseq ${mac} 4c:72:b9:4e:89:5b && goto straight-to-memtest ||
-iseq ${mac} 08:62:66:a3:c6:b0 && goto straight-to-memtest ||
-iseq ${mac} 38:2c:4a:70:2f:32 && goto straight-to-memtest ||
-iseq ${mac} 70:85:c2:09:9d:77 && goto straight-to-memtest ||
-iseq ${mac} 74:d0:2b:79:db:2e && goto straight-to-memtest ||
-iseq ${mac} e0:3f:49:79:4e:bc && goto straight-to-memtest ||
-iseq ${mac} e8:40:f2:ec:b1:69 && goto straight-to-memtest ||
-iseq ${mac} f4:6d:04:90:ca:2c && goto straight-to-memtest ||
+iseq ${mac} 40:8d:5c:1e:f4:92 && goto straight-to-memtest ||
+iseq ${mac} ac:1f:6b:14:74:d8 && goto straight-to-memtest ||
+iseq ${mac} 00:25:90:da:4c:ae && goto straight-to-memtest ||
 
 :main-menu
 imgfree || # Discard any already-downloaded images from previously canceled commands because next boot attempt will kernel panic if previous images aren't freed.
@@ -117,7 +110,7 @@ item --key W production-install-windows             [W] ${PRODUCTION_INSTALL_WIN
 item --gap
 iseq ${platform} pcbios && item --key H hdt         [H] ${HDT_TITLE}            || item --gap   [H] ${HDT_TITLE} *
 iseq ${platform} pcbios && item --key D hds-dos     [D] ${HDS_DOS_TITLE}        || item --gap   [D] ${HDS_DOS_TITLE} *
-iseq ${platform} efi && item --key M memtest-uefi   [M] ${MEMTEST_UEFI_TITLE}   || item --key M memtest-bios-submenu    [M] ${MEMTEST_BIOS_TITLE} >
+iseq ${platform} efi && item --key M memtest86      [M] ${MEMTEST86_TITLE}      || item --key M memtest86plus [M] ${MEMTEST86PLUS_TITLE}
 item --key K keyboard-tester                        [K] ${KEYBOARD_TESTER_TITLE}
 item --gap
 item --key U advanced-utilities-submenu             [U] Advanced Utilities >
@@ -213,63 +206,27 @@ boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
 goto error
 
 :straight-to-memtest
-iseq ${platform} efi && goto straight-to-memtest-uefi || goto straight-to-memtest-bios
-
-:straight-to-memtest-uefi
-menu Would you like to load ${MEMTEST_UEFI_TITLE}?
+iseq ${platform} efi && menu Would you like to load ${MEMTEST86_TITLE}? || menu Would you like to load ${MEMTEST86PLUS_TITLE}?
 item --gap
-item --gap This MAC (${mac}) has been configured to load straight into MemTest86.
+item --gap This MAC (${mac}) has been configured to load straight into RAM Stress Test.
 item --gap
 item --gap
-item --key Y memtest-uefi       [Y] Yes, Load ${MEMTEST_UEFI_TITLE}
-item --key N main-menu          [N] No, Go to Main Menu
+iseq ${platform} efi && item --key Y memtest86 [Y] Yes, Load ${MEMTEST86_TITLE} || item --key Y memtest86plus [Y] Yes, Load ${MEMTEST86PLUS_TITLE}
+item --key N main-menu                         [N] No, Go to Main Menu
 choose --timeout 2000 memtest-menu-selection && goto ${memtest-menu-selection} || goto error
 
-:straight-to-memtest-bios
-menu Would you like to load ${MEMTEST_BIOS_TITLE}?
-item --gap
-item --gap This MAC (${mac}) has been configured to load straight into Memtest86+.
-item --gap
-item --gap
-item --key Y memtest-bios-501   [Y] Yes, Load ${MEMTEST_BIOS_TITLE} Version 5.01
-item --key N main-menu          [N] No, Go to Main Menu
-choose --timeout 2000 memtest-menu-selection && goto ${memtest-menu-selection} || goto error
-
-:memtest-bios-submenu
-menu Choose Desired ${MEMTEST_BIOS_TITLE} Version
-item --gap
-item --key < main-menu          < Return to Main Menu
-item --gap
-item --gap
-item memtest-bios-501           ${MEMTEST_BIOS_TITLE} Version 5.01 (Trusted Production Version)
-item memtest-bios-531b          ${MEMTEST_BIOS_TITLE} Version 5.31b (Latest Beta for Testing)
-choose --default memtest-bios-501 memtest-menu-selection && goto ${memtest-menu-selection} || goto error
-
-:memtest-bios-501
+:memtest86
 echo
-echo ${MEMTEST_BIOS_TITLE} Version 5.01
-# Using instructions and versions from: https://ipxe.org/appnote/memtest
-echo
-initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86+-5.01.iso || goto error
-echo
-boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
-goto error
-
-:memtest-bios-531b
-echo
-echo ${MEMTEST_BIOS_TITLE} Version 5.31b
-# Using instructions and versions from: https://ipxe.org/appnote/memtest
-echo
-initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86+-5.31b.iso || goto error
-echo
-boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
-goto error
-
-:memtest-uefi
-echo
-echo ${MEMTEST_UEFI_TITLE}
+echo ${MEMTEST86_TITLE}
 echo
 boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86/BOOTX64.efi TFTPROOT=${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86 ||
+goto error
+
+:memtest86plus
+echo
+echo ${MEMTEST86PLUS_TITLE}
+echo
+iseq ${platform} efi && boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86plus.efi || boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86plus.bin ||
 goto error
 
 :keyboard-tester
@@ -340,16 +297,14 @@ item --gap
 item --gap
 item --key L production-live-rescue-mint-cinnamon               [L] ${PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE}
 item --key T production-live-rescue-mint-cli                    [T] ${PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE}
-iseq ${platform} pcbios && item --key D live-rescue-debian      [D] ${LIVE_RESCUE_DEBIAN_TITLE}         || item --gap [D] ${LIVE_RESCUE_DEBIAN_TITLE} *
 item --gap
 item --key W production-windows-recovery-environment            [W] ${PRODUCTION_WINDOWS_RECOVERY_TITLE}
 item --gap
 item --key P partedmagic                                        [P] ${PARTEDMAGIC_TITLE}
 item --key G gparted                                            [G] ${GPARTED_TITLE}
 item --key C clonezilla                                         [C] ${CLONEZILLA_TITLE}
+iseq ${platform} efi && item --key M memtest86plus              [M] Alternate ${MEMTEST86PLUS_TITLE} ||
 iseq ${platform} pcbios && item --key N ntpasswd-submenu        [N] Windows Reset Password (NTPasswd) > || item --gap [N] Windows Reset Password (NTPasswd) *
-item --gap
-iseq ${platform} pcbios && item --key B bios-updates-submenu    [B] TESTING - BIOS Updates >            || item --gap [B] TESTING - BIOS Updates *
 iseq ${platform} efi && item --gap ||
 iseq ${platform} efi && item --gap ||
 iseq ${platform} efi && item --gap                              ${BIOS_ONLY_TOOLS_NOTE} ||
@@ -380,15 +335,6 @@ param memsize ${memsize}
 param platform ${platform}
 param extra_args 3
 boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
-goto error
-
-:live-rescue-debian
-echo
-echo ${LIVE_RESCUE_DEBIAN_TITLE}
-echo
-initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-debian-live-rescue/initrd.img || goto error
-echo
-boot ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-debian-live-rescue/vmlinuz boot=live config quiet netboot=nfs nfsroot=/srv/nfs/techsupport-debian-live-rescue live-config.username=tsbackup ||
 goto error
 
 :production-windows-recovery-environment
@@ -475,50 +421,6 @@ echo
 initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/ntpasswd-110511.iso || goto error
 echo
 boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 iso raw ||
-goto error
-
-
-### BIOS UPDATES SUBMENU ###
-
-:bios-updates-submenu
-menu TESTING - BIOS Updates
-item --gap
-item --key < advanced-utilities-submenu     < Return to Advanced Utilities Menu
-item --gap
-item --gap
-item freedos-12                             FreeDOS (1.2 Full)
-item freedos-13                             FreeDOS (1.3 RC3 Full)
-item --gap
-item dell-E6430                             Dell Latitude E6430
-item --gap
-item --gap                                  MORE TO COME...
-choose --default freedos-12 ts-bios-updates-menu-selection && goto ${ts-bios-updates-menu-selection} || goto error
-
-:freedos-12
-echo
-echo FreeDOS (1.2 Full)
-echo
-initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-bios-updates/FD12FULL.zip || goto error
-echo
-boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 raw ||
-goto error
-
-:freedos-13
-echo
-echo FreeDOS (1.3 RC3 Full)
-echo
-initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-bios-updates/FD13RC3FULL.zip || goto error
-echo
-boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 raw ||
-goto error
-
-:dell-E6430
-echo
-echo Dell Latitude E6430
-echo
-initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/techsupport-bios-updates/E6430.img || goto error
-echo
-boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memdisk-syslinux-5.10 raw ||
 goto error
 
 

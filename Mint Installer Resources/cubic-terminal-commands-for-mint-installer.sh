@@ -66,15 +66,15 @@ if [[ "$(hostname)" == 'cubic' ]]; then
     echo -e '\n\nINCLUDING USB NETWORK ADAPTER MODULES IN INITRAMFS\n'
     # Must be done after system updated or anything that would update initramfs
 
-    # Suppress ShellCheck suggestion to use find instead of ls to better handle non-alphanumeric filenames since this will only ever be alphanumeric filenames.
+    # Suppress ShellCheck suggestion to use "find" instead of "ls" since we need "ls -t" to sort by modification date to easily get a single result of the newest kernel version folder name, and this path will never contain non-alphanumeric characters.
     # shellcheck disable=SC2012
-    ls "/lib/modules/$(ls -t '/lib/modules/' | head -1)/kernel/drivers/net/usb" | cut -d '.' -f 1 > '/usr/share/initramfs-tools/modules.d/net-usb-modules'
-    orig_initramfs_config="$(cat '/etc/initramfs-tools/initramfs.conf')"
+    find "/lib/modules/$(ls -t '/lib/modules/' | head -1)/kernel/drivers/net/usb" -type f -exec basename {} '.ko' \;  > '/usr/share/initramfs-tools/modules.d/network-usb-modules'
+    orig_initramfs_config="$(< '/etc/initramfs-tools/initramfs.conf')"
     sed -i 's/COMPRESS=.*/COMPRESS=xz/' '/etc/initramfs-tools/initramfs.conf' || exit 1
     # Use xz compression so the initrd file is as small as possible since it will also be loaded over the network via iPXE.
     # Changing the compression also makes Cubic update the "initrd.lz" extension to "initrd.xz" so that needs to be used in all boot menus.
     update-initramfs -u || exit 1
-    rm '/usr/share/initramfs-tools/modules.d/net-usb-modules' || exit 1
+    rm '/usr/share/initramfs-tools/modules.d/network-usb-modules' || exit 1
     echo "${orig_initramfs_config}" > '/etc/initramfs-tools/initramfs.conf'
 
 

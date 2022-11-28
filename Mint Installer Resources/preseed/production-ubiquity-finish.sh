@@ -2,7 +2,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 09/12/21
+# Last Updated: 11/28/22
 #
 # MIT License
 #
@@ -19,7 +19,7 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-MODE="$([[ "$(basename -- "$0")" == 'testing-'* ]] && echo 'testing' || echo 'production')"
+MODE="$([[ "${0##*/}" == 'testing-'* ]] && echo 'testing' || echo 'production')"
 readonly MODE
 
 echo "--data-urlencode \"base_end_time=$(date +%s)\" \\" >> '/tmp/post_install_time.sh'
@@ -29,7 +29,7 @@ if [[ -d '/usr/local/share/build-info' && ! -d '/target/usr/local/share/build-in
 fi
 
 if [[ -e '/tmp/detailed_hostname.txt' ]]; then
-    detailed_hostname="$(cat '/tmp/detailed_hostname.txt')"
+    detailed_hostname="$(< '/tmp/detailed_hostname.txt')"
     echo "${detailed_hostname}" > '/target/etc/hostname'
     sed -i "2s/.*/127.0.0.1\t${detailed_hostname}/" '/target/etc/hosts'
     chroot '/target' hostname -F '/target/etc/hostname'

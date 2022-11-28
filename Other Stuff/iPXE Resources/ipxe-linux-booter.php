@@ -35,12 +35,16 @@
 	# Ubuntu 20.04 base finally fixes all the past PXE boot hang on shutdown and reboot issues.
 	# (The PXE boot hang fixes should have theoretically been included in Mint 19.3 since it it was apparently based on Ubuntu 18.04.3, but I still experienced the same hanging issue.)
 	# Ubuntu 19.10 or newer requires "ip=dhcp" as boot arg: https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018
-	# Luckily, adding ip=dhcp to 19.3 boots seems to not cause any issue.
+	# Luckily, adding "ip=dhcp" to 19.3 boots seems to not cause any issue.
+	#
+	# Mint 21:
+	# As of Mint 21 (and Ubuntu 21.04), using "ip=dhcp" actually causes the Ethernet connection to not load a DNS server.
+	# See comments in the "Mint Installer Resources/preseed/production-ubiquity-verify.sh" for more info about this issue and how it's worked around.
 
 	$pxe_server = $_SERVER['SERVER_ADDR'];
 
 	$distro = ($_POST['distro'] ?: 'mint');
-	$version = ($_POST['version'] ?: '20.3');
+	$version = ($_POST['version'] ?: '21');
 	$desktop = ($_POST['desktop'] ?: 'cinnamon');
 
 	$os_folder_name = "$distro-$version-$desktop";

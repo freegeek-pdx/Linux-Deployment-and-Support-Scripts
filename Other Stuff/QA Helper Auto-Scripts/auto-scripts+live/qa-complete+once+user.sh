@@ -17,7 +17,7 @@
 #
 
 echo 'RE-RUNNING FIRST LAUNCH SCRIPTS'
-"$(dirname -- "${BASH_SOURCE[0]}")/launch+once+user.sh"
+"${BASH_SOURCE[0]%/*}/launch+once+user.sh" 'qa-complete'
 
 
 echo 'SETTING SCREENSAVER IDLE TIME TO 10 MINUTES'

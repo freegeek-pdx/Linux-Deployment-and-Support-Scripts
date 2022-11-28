@@ -45,4 +45,4 @@ time rsync -aHv "${tmp_mount_path}/pmagic/" "${output_tftp_path}"
 sudo umount "${tmp_mount_path}"
 rm -rf "${tmp_mount_path}"
 
-echo -e '\nDONE\n'
+echo -e '\nDONE SETTING UP PARTED MAGIC FOR NETBOOT\n'

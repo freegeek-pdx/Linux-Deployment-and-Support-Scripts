@@ -36,13 +36,13 @@ if [[ "$(hostname)" != 'cubic' ]]; then
     fi
 
     echo -e "\n>>> $(which cubic &> /dev/null && echo 'UPDATING' || echo 'INSTALLING') CUBIC <<<\n"
-    sudo apt install --no-install-recommends cubic
+    sudo apt install --no-install-recommends cubic || echo 'UPDATE ERROR - CONTINUING ANYWAY'
 
 
     # SETUP CUBIC PROJECT
 
-    os_version='20.3'
-    os_codename='Una'
+    os_version='21'
+    os_codename='Vanessa'
     build_date="$(date '+%y.%m.%d')"
 
     cubic_project_parent_path="${HOME}/Documents/Free Geek"
@@ -55,7 +55,7 @@ if [[ "$(hostname)" != 'cubic' ]]; then
 
         mkdir -p "${cubic_project_path}"
 
-        cubic_conf_version='2022.01-69-release~202201160230~ubuntu20.04.1'
+        cubic_conf_version='2022.06-72-release~202206302224~ubuntu22.04.1'
         # IMPORTANT: This cubic_conf_version should be set to a version of Cubic that is known the be compatible with the following "cubic.conf" format.
         # The currently installed Cubic version can be retrieved with "dpkg-query --show cubic" (or by copy-and-pasting it from a new "cubic.conf" file made by Cubic).
         # If the "cubic.conf" format is ever changed in the future, having this previous Cubic version listed in the "cubic.conf" file will let Cubic know that it needs to be migrated (and will show a screen like this: https://github.com/PJ-Singh-001/Cubic/wiki/Migrate-Page).
@@ -109,15 +109,21 @@ CUBIC_CONF_EOF
 
     nohup cubic "${cubic_project_path}" &> /dev/null & disown
 
+    while [[ "$(wmctrl -l)"$'\n' != *$' cubic\n'* ]]; do
+        sleep 1
+    done
+    
+    wmctrl -r 'cubic' -e '0,0,0,-1,-1'
+
     until grep -qxF 'is_success_copy = True' "${cubic_project_path}/cubic.conf" && grep -qxF 'is_success_extract = True' "${cubic_project_path}/cubic.conf" && grep -qxF 'casper_directory = casper' "${cubic_project_path}/cubic.conf" && grep -qxF 'squashfs_file_name = filesystem' "${cubic_project_path}/cubic.conf"; do
         echo -e '\n>>> WAITING FOR CUBIC TO EXTRACT ORIGINAL ISO <<<\n>>> CLICK "NEXT" TWICE IN CUBIC <<<\n'
         sleep 5
     done
 
-    custom_rescue_resources_path="$(cd "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd -P)"
+    custom_rescue_resources_path="$(cd "${BASH_SOURCE[0]%/*}" &> /dev/null && pwd -P)"
     custom_installer_resources_path="${custom_rescue_resources_path}/../Mint Installer Resources"
 
-    if ! WIFI_PASSWORD="$(cat "${custom_installer_resources_path}/FG Reuse Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
+    if ! WIFI_PASSWORD="$(< "${custom_installer_resources_path}/FG Reuse Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
         echo 'FAILED TO GET WI-FI PASSWORD'
         exit 1
     fi
@@ -132,7 +138,7 @@ CUBIC_CONF_EOF
     # Make all Terminals and TTYs open directly as root (if needed).
     sudo sed -i 's/^Exec=gnome-terminal/Exec=sudo -i gnome-terminal/' "${cubic_project_root_path}/usr/share/applications/org.gnome.Terminal.desktop" # Make GUI Terminal launch as root.
 
-    if ! grep -q 'sudo -i' "${cubic_project_root_path}/etc/skel/.bashrc"; then
+    if ! grep -qF 'sudo -i' "${cubic_project_root_path}/etc/skel/.bashrc"; then
         cat << 'BASHRC_EOF' | sudo tee -a "${cubic_project_root_path}/etc/skel/.bashrc" > /dev/null
 
 # Make all Terminals and TTYs open directly as root (if needed).
@@ -163,14 +169,22 @@ BEEP_AS_MINT_FROM_ROOT_EOF
     cat << 'STARTX_AS_MINT_FROM_ROOT_EOF' | sudo tee "${cubic_project_root_path}/usr/local/bin/startx" > /dev/null
 #!/bin/bash
 
-# Override "startx" to make sure it always runs at the "mint" user even when called from root.
-# This can be done by creating a "startx" script in "/usr/local/bin/" since it will be found before the actual "start" at "/usr/bin/" because of the PATH order.
+# Override "startx" to make it activate the graphical target instead. (This would previously be used to make sure X was always runs at the "mint" user even when called from root.)
+# This can be done by creating a "startx" script in "/usr/local/bin/" since it will be found before the actual "startx" at "/usr/bin/" because of the PATH order.
 
-if ! xset q &> /dev/null; then
-    sudo -u mint /usr/bin/startx # Must use the full path to the actual "startx" command so that this one is not called again, which would cause an infinite recursive loop.
+if ! systemctl is-active graphical.target > /dev/null; then
+    # DISABLED: sudo -u mint /usr/bin/startx # Must use the full path to the actual "startx" command so that this one is not called again, which would cause an infinite recursive loop.
+    # NOTE: Running "startx" as the "mint" user NO LONGER WORKS on Mint 21 with an error stating "Couldn't get file descriptor referring to the console" and other errors before that point.
+    systemctl isolate graphical # Instead, this command properly starts the graphical environment as the "mint" user in TTY7 just like if booted directly to the GUI (https://linuxconfig.org/start-gui-from-command-line-on-ubuntu-22-04-jammy-jellyfish).
 else
-    echo 'X already running'
-    exit 1
+    if [[ "$(fgconsole)" != '7' ]]; then
+        chvt 7 # "systemctl isolate graphical" will switch to TTY7 automatically when it is first run, but if it's run again from another TTY it won't switch to TTY7. So, if the graphical target is already active, just switch over to TTY7.
+    elif xset q &> /dev/null; then
+        echo 'X (graphical target) already running on TTY7'
+    else
+        >&2 echo 'UNKNOWN ERROR (GRAPHICAL TARGET IS ACTIVE AND TTY IS 7 BUT X IS NOT RUNNING)'
+        exit 1
+    fi
 fi
 STARTX_AS_MINT_FROM_ROOT_EOF
 
@@ -179,7 +193,7 @@ STARTX_AS_MINT_FROM_ROOT_EOF
 
     sudo cp -f "${custom_rescue_resources_path}/resources-for-cubic-project/setup-mint-live-rescue.sh" "${cubic_project_root_path}/usr/bin/setup-mint-live-rescue"
     # AFTER COPYING SCRIPTS, "setup-mint-live-rescue.sh" NEEDS WI-FI PASSWORD PLACEHOLDER REPLACED WITH THE ACTUAL OBFUSCATED WI-FI PASSWORD.
-    sudo sed -i "s/'\[SETUP SCRIPT WILL REPLACE THIS PLACEHOLDER WITH OBFUSCATED WI-FI PASSWORD\]'/\"\$(base64 -d <<< '$(echo -n "${WIFI_PASSWORD}" | base64)')\"/" "${cubic_project_root_path}/usr/bin/setup-mint-live-rescue"
+    sudo sed -i "s/'\[SETUP SCRIPT WILL REPLACE THIS PLACEHOLDER WITH OBFUSCATED WI-FI PASSWORD\]'/\"\$(echo '$(echo -n "${WIFI_PASSWORD}" | base64)' | base64 -d)\"/" "${cubic_project_root_path}/usr/bin/setup-mint-live-rescue"
 
     sudo cp -f "${custom_rescue_resources_path}/resources-for-cubic-project/profile-setup-mint-live-rescue.sh" "${cubic_project_root_path}/etc/profile.d/setup-mint-live-rescue.sh"
     sudo chmod +x "${cubic_project_root_path}/usr/bin/setup-mint-live-rescue" "${cubic_project_root_path}/etc/profile.d/setup-mint-live-rescue.sh"

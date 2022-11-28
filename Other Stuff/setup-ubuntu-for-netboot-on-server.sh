@@ -20,22 +20,22 @@
 
 set -ex
 
-os_version='21'
+os_version='22.04'
 version_suffix=''
-desktop='cinnamon'
+desktop='desktop'
 
 # ALWAYS USE MOST RECENT ISO FOR THE SPECIFIED VERSION:
 # Suppress ShellCheck suggestion to use find instead of ls to better handle non-alphanumeric filenames since this will only ever be alphanumeric filenames.
 # shellcheck disable=SC2012
-source_iso_path="$(ls -t "/srv/setup-resources/images/mint-live-rescue-${os_version}-${desktop}-64bit${version_suffix}"*'.iso' | head -1)"
+source_iso_path="$(ls -t "/srv/setup-resources/images/ubuntu-${os_version}-${desktop}-amd64${version_suffix}"*'.iso' | head -1)"
 
 # UNCOMMENT TO OVERRIDE WITH SPECIFIC ISO:
-#source_iso_path="/srv/setup-resources/images/mint-live-rescue-${os_version}-${desktop}-64bit${version_suffix}-updated-YY.MM.DD.iso"
+#source_iso_path="/srv/setup-resources/images/ubuntu-${os_version}-${desktop}-64bit${version_suffix}-updated-YY.MM.DD.iso"
 
-tmp_mount_path="/srv/setup-resources/mountpoint-mint-live-rescue-${os_version}-${desktop}${version_suffix}"
+tmp_mount_path="/srv/setup-resources/mountpoint-ubuntu-${os_version}-${desktop}${version_suffix}"
 
-output_tftp_path="/srv/tftp/mint-live-rescue-${os_version}-${desktop}${version_suffix}"
-output_nfs_path="/srv/nfs/mint-live-rescue-${os_version}-${desktop}${version_suffix}"
+output_tftp_path="/srv/tftp/ubuntu-${os_version}-${desktop}${version_suffix}"
+output_nfs_path="/srv/nfs/ubuntu-${os_version}-${desktop}${version_suffix}"
 
 if [[ -d "${output_nfs_path}.old" || -d "${output_tftp_path}.old" ]]; then sudo rm -rf "${output_nfs_path}.old" "${output_tftp_path}.old"; fi
 if [[ -d "${output_nfs_path}" ]]; then mv "${output_nfs_path}" "${output_nfs_path}.old"; fi
@@ -55,4 +55,4 @@ time rsync -aHv "${tmp_mount_path}/" "${output_nfs_path}"
 sudo umount "${tmp_mount_path}"
 rm -rf "${tmp_mount_path}"
 
-echo -e "\nDONE SETTING UP MINT ${os_version} LIVE RESCUE FOR NETBOOT\n"
+echo -e "\nDONE SETTING UP UBUNTU ${os_version} FOR NETBOOT\n"

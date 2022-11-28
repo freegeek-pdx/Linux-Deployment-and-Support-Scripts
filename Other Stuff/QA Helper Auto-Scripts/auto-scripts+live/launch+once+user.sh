@@ -33,7 +33,7 @@ if [[ "$(gsettings get com.linuxmint.updates show-welcome-page)" != 'false' ]]; 
 fi
 
 
-if ! crontab -l 2> /dev/null | grep -q 'launch-qa-helper'; then
+if ! crontab -l 2> /dev/null | grep -qF 'launch-qa-helper'; then
     echo 'ADDING QA HELPER TO USER CRON JOBS TO LAUNCH EVERY 30 MINUTES'
     echo -e "$(crontab -l 2> /dev/null)\n*/30 * * * * DISPLAY='${DISPLAY}' DESKTOP_SESSION='${DESKTOP_SESSION}' XDG_CURRENT_DESKTOP='${XDG_CURRENT_DESKTOP}' ${HOME}/.local/qa-helper/launch-qa-helper no-focus 2>&1 | logger -t launch-qa-helper" | crontab -
 fi
@@ -41,6 +41,10 @@ fi
 
 echo 'TURNING ON WI-FI'
 nmcli radio all on
+
+
+echo 'ENABLING TOUCHPAD TAP-TO-CLICK'
+gsettings set org.cinnamon.desktop.peripherals.touchpad tap-to-click true
 
 
 echo 'TURNING OFF ALL SLEEP & LOCK SETTINGS'
@@ -65,7 +69,7 @@ gsettings set org.cinnamon.desktop.background.slideshow slideshow-enabled true
 gsettings set org.cinnamon.desktop.background.slideshow image-source "xml://$(find '/usr/share/cinnamon-background-properties/' -maxdepth 1 -name '*.xml' ! -name 'linuxmint.xml' | shuf -n1)"
 gsettings set org.cinnamon.desktop.background.slideshow delay 10
 gsettings set org.cinnamon.desktop.background.slideshow random-order true
-if ! crontab -l 2> /dev/null | grep -q 'random-slideshow-image-source'; then
+if ! crontab -l 2> /dev/null | grep -qF 'random-slideshow-image-source'; then
     echo -e "$(crontab -l 2> /dev/null)\n15 * * * * DISPLAY='${DISPLAY}' gsettings set org.cinnamon.desktop.background.slideshow image-source \"xml://\$(find '/usr/share/cinnamon-background-properties/' -maxdepth 1 -name '*.xml' ! -name 'linuxmint.xml' | shuf -n1)\" 2>&1 | logger -t random-slideshow-image-source" | crontab -
 fi
 
@@ -84,15 +88,21 @@ gsettings set org.cinnamon.desktop.screensaver date-format '    %A %B %e, %Y'
 if [[ -f '/usr/share/applications/google-chrome.desktop' ]]; then
     echo 'CONFIGURING GOOGLE CHROME TO BYPASS FIRST RUN PROMPTS'
 
-    # Create "~/.config/google-chrome/First Run" file so that Google Chrome does not prompt to be default browser or to send usage stats on first launch.
-    if [[ ! -d "${HOME}/.config/google-chrome" ]]; then
-        mkdir "${HOME}/.config/google-chrome"
+    if [[ ! -d "${HOME}/.config/google-chrome/Default/" ]]; then
+        mkdir -p "${HOME}/.config/google-chrome/Default"
     fi
+
+    # Create "~/.config/google-chrome/First Run" file so that Google Chrome does not prompt to be default browser or to send usage stats on first launch.
     touch "${HOME}/.config/google-chrome/First Run"
 
-    # Create Google Chrome launcher for OEM user which does not prompt for Keyring password on quit: https://ubuntuforums.org/showthread.php?t=2377036&p=13708937#post13708937
+    # Create "~/.config/google-chrome/Default/Preferences" JSON file with "browser.has_seen_welcome_page" value set to "true" to not show the welcome page, and the
+    # "browser.default_browser_infobar_last_declined" timestamp set far in the future so the toolbar prompt to set Chrome as the default browser is never displayed. 
+    echo '{"browser":{"has_seen_welcome_page":true,"default_browser_infobar_last_declined":"99999999999999999"}}' > "${HOME}/.config/google-chrome/Default/Preferences"
+
+    # Create Google Chrome launcher for OEM user which does not prompt for Keyring password: https://ubuntuforums.org/showthread.php?t=2377036&p=13708937#post13708937
+    rm -f "${HOME}/.local/share/applications/google-chrome.desktop"
     desktop-file-install --dir "${HOME}/.local/share/applications/" '/usr/share/applications/google-chrome.desktop'
-    sed -i 's/google-chrome-stable %U/google-chrome-stable --password-store=basic %U/' "${HOME}/.local/share/applications/google-chrome.desktop"
+    sed -i 's|^Exec=/usr/bin/google-chrome-stable |Exec=/usr/bin/google-chrome-stable --password-store=basic |; s|^Exec=/usr/bin/google-chrome-stable$|Exec=/usr/bin/google-chrome-stable --password-store=basic|' "${HOME}/.local/share/applications/google-chrome.desktop"
     chmod +x "${HOME}/.local/share/applications/google-chrome.desktop"
 fi
 

@@ -37,12 +37,16 @@ if [[ "$(hostname)" == 'cubic' && -f '/usr/bin/setup-mint-live-rescue' ]]; then
     # REMOVED: clamav clamav-freshclam BECUASE THEY ARE NOT NECESSARY
     # REPLACED (Mint 20): python-scapy WITH python3-scapy
     # REPLACED (Mint 20): btrfs-tools WITH btrfs-progs
-    # REMOVED (Mint 20): denyhosts BECAUSE ITS NOT LONGER AVAILABLE
+    # REMOVED (Mint 20): denyhosts BECAUSE ITS NO LONGER AVAILABLE
+    # REMOVED (Mint 21): hddtemp BECAUSE ITS NO LONGER AVAILABLE
+    # REPLACED (Mint 21): ifenslave-2.6 WITH ifenslave
+    # REPLACED (Mint 21): exfat-utils WITH exfatprogs
+    # REPLACED (Mint 21): fuse WITH fuse3
 
     # Set wireshark options in advance so we don't have to choose them during installation.
     echo 'wireshark-common wireshark-common/install-setuid boolean true' | debconf-set-selections
 
-    apt install --no-install-recommends -y scalpel syslinux-common grub2-common grub-efi-amd64 mbr syslinux extlinux gnupg dash discover gawk htop less lsof ltrace psmisc screen strace units tcsh vlock moreutils aview mc nano-tiny mg vim wdiff hexedit nvi tweak dvd+rw-tools genisoimage sdparm hdparm blktool parted partimage secure-delete scsitools smartmontools testdisk wodim wipe hddtemp bonnie++ par2 fsarchiver chiark-utils-bin dmidecode lshw pciutils procinfo usbutils sysstat stress lynx links2 w3m arj bzip2 lzma p7zip-full unace unrar-free unzip zip lzop ncompress pax dar gddrescue dump dcfldd mt-st duplicity rdiff rdiff-backup rsnapshot colordiff chrootuid cpio cryptcat directvnc etherwake ftp ifenslave-2.6 ethtool ipcalc minicom gkermit netcat netmask openssl openvpn vpnc strongswan sipcalc socat ssh telnet whois irssi debootstrap cdebootstrap rinse pv manpages acl symlinks bsdmainutils fail2ban iptables knockd vlan netbase rdate ntpdate isc-dhcp-client ppp pppconfig pppoe pppoeconf atm-tools bridge-utils ebtables parprouted br2684ctl cutter iproute2 iproute2-doc iputils-tracepath mtr-tiny tcptraceroute traceroute spinner arpalert arpwatch bmon ethstatus geoip-bin hp-search-mac icmpinfo ifstat iftop ipgrab iptstate iptraf lft nast nbtscan netdiscover nload nsca nstreams saidar scanssh sntop ssldump tcpdump tcpreen tcpreplay tshark crashme dbench doscan dsniff hping3 icmpush medusa netdiag netpipe-tcp nmap ndisc6 ngrep p0f packit python3-scapy xprobe lwatch multitail httping arping dnstracer dnsutils adns-tools fping reiserfsprogs squashfs-tools sshfs sysfsutils udftools xfsdump xfsprogs btrfs-progs cryptsetup dmraid e2fsprogs fuse hfsplus hfsutils jfsutils lsscsi lvm2 mdadm mtools nilfs-tools ntfs-3g exfat-fuse exfat-utils reiser4progs dmsetup zfsutils-linux foremost magicrescue sleuthkit dosfstools mscompress chntpw pptpd pptp-linux cpuid x86info hwinfo tofrodos dc bc rlwrap chkrootkit rkhunter smbclient nfs-common wireless-tools wpasupplicant reaver aide autopsy pwgen rsync ncftp rpm curl wget lftp net-tools expect gpm isc-dhcp-server hostapd build-essential gdb gfortran gnat || exit 1
+    apt install --no-install-recommends -y scalpel syslinux-common grub2-common grub-efi-amd64 mbr syslinux extlinux gnupg dash discover gawk htop less lsof ltrace psmisc screen strace units tcsh vlock moreutils aview mc nano-tiny mg vim wdiff hexedit nvi tweak dvd+rw-tools genisoimage sdparm hdparm blktool parted partimage secure-delete scsitools smartmontools testdisk wodim wipe bonnie++ par2 fsarchiver chiark-utils-bin dmidecode lshw pciutils procinfo usbutils sysstat stress lynx links2 w3m arj bzip2 lzma p7zip-full unace unrar-free unzip zip lzop ncompress pax dar gddrescue dump dcfldd mt-st duplicity rdiff rdiff-backup rsnapshot colordiff chrootuid cpio cryptcat directvnc etherwake ftp ifenslave ethtool ipcalc minicom gkermit netcat netmask openssl openvpn vpnc strongswan sipcalc socat ssh telnet whois irssi debootstrap cdebootstrap rinse pv manpages acl symlinks bsdmainutils fail2ban iptables knockd vlan netbase rdate ntpdate isc-dhcp-client ppp pppconfig pppoe pppoeconf atm-tools bridge-utils ebtables parprouted br2684ctl cutter iproute2 iproute2-doc iputils-tracepath mtr-tiny tcptraceroute traceroute spinner arpalert arpwatch bmon ethstatus geoip-bin hp-search-mac icmpinfo ifstat iftop ipgrab iptstate iptraf lft nast nbtscan netdiscover nload nsca nstreams saidar scanssh sntop ssldump tcpdump tcpreen tcpreplay tshark crashme dbench doscan dsniff hping3 icmpush medusa netdiag netpipe-tcp nmap ndisc6 ngrep p0f packit python3-scapy xprobe lwatch multitail httping arping dnstracer dnsutils adns-tools fping reiserfsprogs squashfs-tools sshfs sysfsutils udftools xfsdump xfsprogs btrfs-progs cryptsetup dmraid e2fsprogs fuse3 hfsplus hfsutils jfsutils lsscsi lvm2 mdadm mtools nilfs-tools ntfs-3g exfat-fuse exfatprogs reiser4progs dmsetup zfsutils-linux foremost magicrescue sleuthkit dosfstools mscompress chntpw pptpd pptp-linux cpuid x86info hwinfo tofrodos dc bc rlwrap chkrootkit rkhunter smbclient nfs-common wireless-tools wpasupplicant reaver aide autopsy pwgen rsync ncftp rpm curl wget lftp net-tools expect gpm isc-dhcp-server hostapd build-essential gdb gfortran gnat || exit 1
 
 
 
@@ -159,15 +163,15 @@ SETUP_MLR_DESKTOP_FILE_EOF
     echo -e '\n\nINCLUDING USB NETWORK ADAPTER MODULES IN INITRAMFS\n'
     # Must be done after system updated or anything that would update initramfs
 
-    # Suppress ShellCheck suggestion to use find instead of ls to better handle non-alphanumeric filenames since this will only ever be alphanumeric filenames.
+    # Suppress ShellCheck suggestion to use "find" instead of "ls" since we need "ls -t" to sort by modification date to easily get a single result of the newest kernel version folder name, and this path will never contain non-alphanumeric characters.
     # shellcheck disable=SC2012
-    ls "/lib/modules/$(ls -t '/lib/modules/' | head -1)/kernel/drivers/net/usb" | cut -d '.' -f 1 > '/usr/share/initramfs-tools/modules.d/net-usb-modules'
-    orig_initramfs_config="$(cat '/etc/initramfs-tools/initramfs.conf')"
+    find "/lib/modules/$(ls -t '/lib/modules/' | head -1)/kernel/drivers/net/usb" -type f -exec basename {} '.ko' \;  > '/usr/share/initramfs-tools/modules.d/network-usb-modules'
+    orig_initramfs_config="$(< '/etc/initramfs-tools/initramfs.conf')"
     sed -i 's/COMPRESS=.*/COMPRESS=xz/' '/etc/initramfs-tools/initramfs.conf' || exit 1
     # Use xz compression so the initrd file is as small as possible since it will also be loaded over the network via iPXE.
     # Changing the compression also makes Cubic update the "initrd.lz" extension to "initrd.xz" so that needs to be used in all boot menus.
     update-initramfs -u || exit 1
-    rm '/usr/share/initramfs-tools/modules.d/net-usb-modules' || exit 1
+    rm '/usr/share/initramfs-tools/modules.d/network-usb-modules' || exit 1
     echo "${orig_initramfs_config}" > '/etc/initramfs-tools/initramfs.conf'
     
     

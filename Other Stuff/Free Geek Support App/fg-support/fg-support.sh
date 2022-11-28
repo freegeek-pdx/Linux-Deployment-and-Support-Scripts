@@ -3,7 +3,7 @@
 #
 # Created by Pico Mitchell on 05/28/19
 # For Free Geek
-# Last Updated: 01/19/22
+# Last Updated: 02/28/22
 #
 # MIT License
 #
@@ -35,7 +35,8 @@ if ! pidof -o %PPID -x 'fg-support.sh'; then
         website_announcement="${website_announcement//. /.$'\n'}" # Put each sentence on its own line so that long announcements don't make the window too wide.
     fi
 
-    if [[ -z "${tech_support_hours}" ]]; then
+    if [[ -z "${fg_website_content}" ]]; then
+        # Only use saved Tech Support hours if unable to load website content (since don't want to use default or previously saved Tech Support hours if none were listed in the current website contents).
         tech_support_hours="$(cat "${HOME_INSTALL_DIR}/fg-support_tech-support-hours.txt" 2> /dev/null || cat "${GLOBAL_INSTALL_DIR}/fg-support_tech-support-hours.txt" 2> /dev/null)"
     fi
 

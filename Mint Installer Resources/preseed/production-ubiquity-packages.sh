@@ -2,7 +2,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 11/08/21
+# Last Updated: 11/22/22
 #
 # MIT License
 #
@@ -19,7 +19,7 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-MODE="$([[ "$(basename -- "$0")" == 'testing-'* ]] && echo 'testing' || echo 'production')"
+MODE="$([[ "${0##*/}" == 'testing-'* ]] && echo 'testing' || echo 'production')"
 readonly MODE
 
 if [[ ! -e '/home/oem/Desktop/qa-helper.desktop' ]]; then
@@ -35,19 +35,20 @@ if [[ ! -e '/home/oem/Desktop/qa-helper.desktop' ]]; then
     done
 fi
 
-if [[ ! -e '/usr/share/applications/fg-support.desktop' ]]; then
-    for install_free_geek_support_attempt in {1..5}
-    do
-        echo -e '\n\nPREPARING TO INSTALL FREE GEEK SUPPORT\n'
-        curl -m 5 -sL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh' | bash -s -- "${MODE}"
-        
-        if [[ -e '/usr/share/applications/fg-support.desktop' ]]; then
-            break
-        else
-            sleep "${install_free_geek_support_attempt}"
-        fi
-    done
-fi
+# NOTE: Not currently installing "Free Geek Support" app since Tech Support has temporarily been closed, but leaving code in place for possible future use.
+# if [[ ! -e '/usr/share/applications/fg-support.desktop' ]]; then
+#     for install_free_geek_support_attempt in {1..5}
+#     do
+#         echo -e '\n\nPREPARING TO INSTALL FREE GEEK SUPPORT\n'
+#         curl -m 5 -sL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh' | bash -s -- "${MODE}"
+#
+#         if [[ -e '/usr/share/applications/fg-support.desktop' ]]; then
+#             break
+#         else
+#             sleep "${install_free_geek_support_attempt}"
+#         fi
+#     done
+# fi
 
 echo -e '\n\nINSTALLING OEM-CONFIG-GTK:\n'
 # Use "--no-install-recommends" since apt in Mint 20 now includes recommendations by default.
@@ -60,19 +61,28 @@ apt install -y mint-meta-codecs
 
 if [[ "${MODE}" == 'production' ]]; then
     echo -e '\n\nSYSTEM UPDATE 1 OF 3:\n'
-    mintupdate-cli upgrade -r -y
+    mintupdate-cli upgrade -ry
 
     echo -e '\n\nSYSTEM UPDATE 2 OF 3:\n'
-    mintupdate-cli upgrade -r -y
+    mintupdate-cli upgrade -ry
 
     echo -e '\n\nAUTOREMOVE ONCE BEFORE LAST UPDATE CYCLE:\n'
     apt autoremove -y
 
     echo -e '\n\nSYSTEM UPDATE 3 OF 3:\n'
-    mintupdate-cli upgrade -r -y
+    mintupdate-cli upgrade -ry
+
+    mintupdate_dryrun_output="$(mintupdate-cli upgrade -rd)"
+    if [[ "${mintupdate_dryrun_output}" != 'Error: mint-refresh-cache could not update the cache.'* && "${mintupdate_dryrun_output}" != *"Use 'apt autoremove' to remove them."* && "${mintupdate_dryrun_output}" == *$'\n0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.' ]]; then
+        # Automatically mark System Update as Verified in QA Helper if all updates were installed.
+        if [[ ! -d '/usr/local/share/build-info' ]]; then
+            mkdir '/usr/local/share/build-info' # This folder (and the "qa-helper-log.txt" file) may or may not already exist depending on whether or not anything else was already verified in QA Helper.
+        fi
+        echo "Task: Updates Verified - $(date '+%m/%d/%Y %T')" >> '/usr/local/share/build-info/qa-helper-log.txt' # If anything was verified in QA Helper, the ubiquity-finish script will have copied this script to this target drive location.
+    fi
 fi
 
-if ! xinput | grep -q 'AT Translated'; then # Does not have internal keyboard, so assume it is a Desktop.
+if ! xinput | grep -qF 'AT Translated'; then # Does not have internal keyboard, so assume it is a Desktop.
     # NVIDIA drivers often cause issues on Laptops, so only auto-install ubuntu-drivers on Desktops.
 
     ubuntu_drivers_list="$(ubuntu-drivers list)"

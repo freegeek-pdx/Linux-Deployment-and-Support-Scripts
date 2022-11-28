@@ -17,4 +17,4 @@
 #
 
 echo 'RE-RUNNING FIRST LAUNCH SCRIPTS'
-"$(dirname -- "${BASH_SOURCE[0]}")/launch+once+root.sh"
+"${BASH_SOURCE[0]%/*}/launch+once+root.sh" 'qa-complete'

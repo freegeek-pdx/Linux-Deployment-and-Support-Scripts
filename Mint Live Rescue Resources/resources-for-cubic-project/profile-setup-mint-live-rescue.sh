@@ -2,7 +2,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 02/01/22
+# Last Updated: 11/23/22
 #
 # MIT License
 #
@@ -19,20 +19,19 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-if pgrep -u mint systemd &> /dev/null && [[ ( "${TERM}" == 'linux' || "${TERM}" == 'xterm-256color' ) && "$(id -un)" == 'mint' && "${HOME}" == '/home/mint' ]]; then # Only run if fully logged in as "mint" user with an interactive terminal by checking that TERM is "linux" (on 20.2) or "xterm-256color" (on 20.3).
-    this_tty="$(tty | cut -c 6-)"
-    this_tty="${this_tty^^}"
-    
+if pgrep -u mint systemd &> /dev/null && [[ ( "${TERM}" == 'linux' || "${TERM}" == 'xterm-256color' ) && "$(id -un)" == 'mint' && "${HOME}" == '/home/mint' ]]; then # Only run if fully logged in as "mint" user with an interactive terminal by checking that TERM is "linux" (on 20.2) or "xterm-256color" (on 20.3 and 21).
+    this_tty="TTY$(fgconsole)"
+
     echo -e "\nPROFILE FOR ${this_tty}: SETTERM AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
-    
+
     setterm -blank 0 -powersave off -foreground cyan 2> /dev/null
-    
-    if grep -q ' 3 ' '/proc/cmdline' && [[ "$(tty)" == '/dev/tty1' ]]; then
+
+    if grep -qF ' 3 ' '/proc/cmdline' && [[ "${this_tty}" == 'TTY1' ]]; then
         echo "PROFILE FOR ${this_tty}: CALLING SETUP MINT LIVE RESCUE BECAUSE IS TTY1 AND BOOTED INTO CLI MODE AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
-        
+
         # Don't need to call /usr/bin/setup-mint-live-rescue when not booted into CLI Mode (Runlevel 3) because it will get called by /etc/xdg/autostart/setup-mint-live-rescue.desktop when Cinnamon is started.
         # And, only need to call /usr/bin/setup-mint-live-rescue for TTY1 because the settings apply to all TTYs.
-        
+
         '/usr/bin/setup-mint-live-rescue' & disown
     else
         echo "PROFILE FOR ${this_tty}: DID NOT CALL SETUP MINT LIVE RESCUE BECAUSE NOT TTY1 OR NOT BOOTED INTO CLI MODE AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
