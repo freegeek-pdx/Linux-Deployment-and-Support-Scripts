@@ -1,8 +1,9 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell
-# Last Updated: 12/03/20
+# Last Updated: 01/09/23
 #
 # MIT License
 #

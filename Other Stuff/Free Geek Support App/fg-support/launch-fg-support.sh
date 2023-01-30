@@ -1,9 +1,10 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell on 05/29/19
 # For Free Geek
-# Last Updated: 01/12/22
+# Last Updated: 01/17/23
 #
 # MIT License
 #
@@ -44,7 +45,7 @@ if ! pidof -o %PPID -x 'fg-support.sh'; then
             readonly DOWNLOAD_URL='https://apps.freegeek.org/fg-support/download'
 
             for (( download_newest_version_attempt = 0; download_newest_version_attempt < 5; download_newest_version_attempt ++ )); do
-                if newest_version="$(curl -m 5 -sL ${DOWNLOAD_URL}/latest-version.txt | head -1)" && [[ -n "${newest_version}" ]]; then
+                if newest_version="$(curl -m 5 -sfL "${DOWNLOAD_URL}/latest-version.txt" | head -1)" && [[ -n "${newest_version}" ]]; then
                     break
                 fi
             done
@@ -53,13 +54,13 @@ if ! pidof -o %PPID -x 'fg-support.sh'; then
                 for (( download_update_attempt = 0; download_update_attempt < 5; download_update_attempt ++ )); do
                     rm -f '/tmp/fg-support.zip'
 
-                    if curl --connect-timeout 5 --progress-bar -L "${DOWNLOAD_URL}/fg-support.zip" -o '/tmp/fg-support.zip' && [[ -e '/tmp/fg-support.zip' ]]; then
+                    if curl --connect-timeout 5 --progress-bar -fL "${DOWNLOAD_URL}/fg-support.zip" -o '/tmp/fg-support.zip' && [[ -e '/tmp/fg-support.zip' ]]; then
                         if downloaded_version="$(unzip -p '/tmp/fg-support.zip' '*/fg-support_version.txt' | head -1)" && [[ -n "${downloaded_version}" ]]; then
                             if [[ "${downloaded_version}" == "${newest_version}" ]]; then
                                 rm -rf "${HOME_INSTALL_DIR}"
                                 mkdir -p "${HOME_INSTALL_DIR}"
 
-                                if unzip -o -j '/tmp/fg-support.zip' -x '__MACOSX*' '.*' '*/.*' -d "${HOME_INSTALL_DIR}" && [[ -e "${HOME_INSTALL_DIR}/fg-support.sh" && -e "${HOME_INSTALL_DIR}/launch-fg-support.sh" ]]; then
+                                if unzip -jo '/tmp/fg-support.zip' -x '__MACOSX*' '.*' '*/.*' -d "${HOME_INSTALL_DIR}" && [[ -e "${HOME_INSTALL_DIR}/fg-support.sh" && -e "${HOME_INSTALL_DIR}/launch-fg-support.sh" ]]; then
                                     chmod +x "${HOME_INSTALL_DIR}/"*'.sh'
 
                                     rm -f "${HOME}/.local/bin/fg-support"

@@ -1,8 +1,9 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell
-# Last Updated: 11/22/22
+# Last Updated: 01/09/23
 #
 # MIT License
 #
@@ -25,7 +26,7 @@ readonly MODE
 if [[ ! -e '/home/oem/Desktop/qa-helper.desktop' ]]; then
     for install_qa_helper_attempt in {1..5}; do
         echo -e '\n\nPREPARING TO INSTALL QA HELPER\n'
-        curl -m 5 -sL 'https://apps.freegeek.org/qa-helper/download/actually-install-qa-helper.sh' | bash -s -- "${MODE}"
+        curl -m 5 -sfL 'https://apps.freegeek.org/qa-helper/download/actually-install-qa-helper.sh' | bash -s -- "${MODE}"
         
         if [[ -e '/home/oem/Desktop/qa-helper.desktop' ]]; then
             break
@@ -40,7 +41,7 @@ fi
 #     for install_free_geek_support_attempt in {1..5}
 #     do
 #         echo -e '\n\nPREPARING TO INSTALL FREE GEEK SUPPORT\n'
-#         curl -m 5 -sL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh' | bash -s -- "${MODE}"
+#         curl -m 5 -sfL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh' | bash -s -- "${MODE}"
 #
 #         if [[ -e '/usr/share/applications/fg-support.desktop' ]]; then
 #             break

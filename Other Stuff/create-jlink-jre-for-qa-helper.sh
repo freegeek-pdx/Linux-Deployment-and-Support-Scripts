@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -23,15 +24,15 @@
 
 echo 'CREATING LATEST JLINK JRE FOR QA HELPER ON LINUX'
 
-temp_folder_path="/tmp/qa-helper-jlink-jre"
+temp_folder_path='/tmp/qa-helper-jlink-jre'
 
 rm -rf "${temp_folder_path}"
 mkdir -p "${temp_folder_path}"
 
-jdk_download_url="$(curl -m 5 -sL "https://jdk.java.net$(curl -m 5 -sL 'https://jdk.java.net' | awk -F '"' '($3 == ">Ready for use: <a href=") { print $4; exit }')" 2> /dev/null | awk -F '"' '/_linux-x64_bin.tar.gz"/ { print $2; exit }')"
+jdk_download_url="$(curl -m 5 -sfL "https://jdk.java.net$(curl -m 5 -sfL 'https://jdk.java.net' | awk -F '"' '($3 == ">Ready for use: <a href=") { print $4; exit }')" 2> /dev/null | awk -F '"' '/_linux-x64_bin.tar.gz"/ { print $2; exit }')"
 jdk_archive_filename="${jdk_download_url##*/}"
 echo -e "\nDOWNLOADING \"${jdk_download_url}\"..."
-curl --connect-timeout 5 --progress-bar -L "${jdk_download_url}" -o "${temp_folder_path}/${jdk_archive_filename}" || exit 1
+curl --connect-timeout 5 --progress-bar -fL "${jdk_download_url}" -o "${temp_folder_path}/${jdk_archive_filename}" || exit 1
 
 echo -e "\nUNARCHIVING \"${jdk_archive_filename}\"..."
 tar -xzf "${temp_folder_path}/${jdk_archive_filename}" -C "${temp_folder_path}" || exit 1

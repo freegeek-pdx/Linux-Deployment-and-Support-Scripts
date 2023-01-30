@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -28,6 +29,14 @@ source_iso_path="$(ls -t "/srv/setup-resources/images/pmagic_"*'.iso' | head -1)
 # UNCOMMENT TO OVERRIDE WITH SPECIFIC ISO:
 #source_iso_path="/srv/setup-resources/images/pmagic_VERSION.iso"
 
+if [[ -f "${source_iso_path}" ]]; then
+    echo -e "\nPRESS ENTER TO CONTINUE WITH ISO PATH \"${source_iso_path}\" (OR PRESS CONTROL-C TO CANCEL)"
+    read -r
+else
+    >&2 echo -e "\nERROR: SOURCE ISO NOT FOUND AT \"${source_iso_path:-/srv/setup-resources/images/pmagic_*.iso}\"\n"
+    exit 1
+fi
+
 output_tftp_path='/srv/tftp/pmagic'
 tmp_mount_path='/srv/setup-resources/mountpoint-pmagic'
 
@@ -40,9 +49,9 @@ rm -rf "${tmp_mount_path}"
 mkdir -p "${tmp_mount_path}"
 sudo mount "${source_iso_path}" "${tmp_mount_path}"
 
-time rsync -aHv "${tmp_mount_path}/pmagic/" "${output_tftp_path}"
+time rsync --progress -aHv "${tmp_mount_path}/pmagic/" "${output_tftp_path}"
 
 sudo umount "${tmp_mount_path}"
 rm -rf "${tmp_mount_path}"
 
-echo -e '\nDONE SETTING UP PARTED MAGIC FOR NETBOOT\n'
+echo -e "\nDONE SETTING UP PARTED MAGIC FOR NETBOOT: ${source_iso_path}\n"

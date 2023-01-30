@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -20,9 +21,15 @@
 
 set -ex
 
-os_version='22.04'
-version_suffix=''
-desktop='desktop'
+os_version="$1"
+version_suffix="$2"
+desktop="${3:-desktop}"
+
+if [[ -z "${os_version}" ]]; then
+    >&2 echo -e '\nERROR: MUST SPECIFY OS VERSION AS FIRST ARGUMENT\n'
+    exit 1
+fi
+
 
 # ALWAYS USE MOST RECENT ISO FOR THE SPECIFIED VERSION:
 # Suppress ShellCheck suggestion to use find instead of ls to better handle non-alphanumeric filenames since this will only ever be alphanumeric filenames.
@@ -30,7 +37,15 @@ desktop='desktop'
 source_iso_path="$(ls -t "/srv/setup-resources/images/ubuntu-${os_version}-${desktop}-amd64${version_suffix}"*'.iso' | head -1)"
 
 # UNCOMMENT TO OVERRIDE WITH SPECIFIC ISO:
-#source_iso_path="/srv/setup-resources/images/ubuntu-${os_version}-${desktop}-64bit${version_suffix}-updated-YY.MM.DD.iso"
+# source_iso_path="/srv/setup-resources/images/ubuntu-${os_version}-${desktop}-64bit${version_suffix}-updated-YY.MM.DD.iso"
+
+if [[ -f "${source_iso_path}" ]]; then
+    echo -e "\nPRESS ENTER TO CONTINUE WITH ISO PATH \"${source_iso_path}\" (OR PRESS CONTROL-C TO CANCEL)"
+    read -r
+else
+    >&2 echo -e "\nERROR: SOURCE ISO NOT FOUND AT \"${source_iso_path}\"\n"
+    exit 2
+fi
 
 tmp_mount_path="/srv/setup-resources/mountpoint-ubuntu-${os_version}-${desktop}${version_suffix}"
 
@@ -50,9 +65,9 @@ sudo mount "${source_iso_path}" "${tmp_mount_path}"
 mkdir -p "${output_tftp_path}"
 cp "${tmp_mount_path}/casper/initrd"* "${tmp_mount_path}/casper/vmlinuz" "${output_tftp_path}/"
 
-time rsync -aHv "${tmp_mount_path}/" "${output_nfs_path}"
+time rsync --progress -aHv "${tmp_mount_path}/" "${output_nfs_path}"
 
 sudo umount "${tmp_mount_path}"
 rm -rf "${tmp_mount_path}"
 
-echo -e "\nDONE SETTING UP UBUNTU ${os_version} FOR NETBOOT\n"
+echo -e "\nDONE SETTING UP UBUNTU ${os_version} FOR NETBOOT: ${source_iso_path}\n"

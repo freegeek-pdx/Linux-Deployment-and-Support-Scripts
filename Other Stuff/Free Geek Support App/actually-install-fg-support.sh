@@ -1,9 +1,10 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell on 05/28/19
 # For Free Geek
-# Last Updated: 01/11/22
+# Last Updated: 01/17/23
 #
 # MIT License
 #
@@ -84,13 +85,13 @@ if [[ "$(uname)" != 'Darwin' ]]; then # Don't run on macOS
             for (( download_attempt = 0; download_attempt < 5; download_attempt ++ )); do
                 sudo rm -f '/tmp/fg-support.zip'
 
-                if sudo curl --connect-timeout 5 --progress-bar -L "${DOWNLOAD_URL}/fg-support.zip" -o '/tmp/fg-support.zip' && [[ -e '/tmp/fg-support.zip' ]]; then
+                if sudo curl --connect-timeout 5 --progress-bar -fL "${DOWNLOAD_URL}/fg-support.zip" -o '/tmp/fg-support.zip' && [[ -e '/tmp/fg-support.zip' ]]; then
                     if downloaded_version="$(sudo unzip -p '/tmp/fg-support.zip' '*/fg-support_version.txt' | head -1)" && [[ -n "${downloaded_version}" ]]; then
                         if $TEST_MODE || [[ "${downloaded_version}" != *'test'* ]]; then
                             sudo rm -rf "${INSTALL_DIR}"
                             sudo mkdir -p "${INSTALL_DIR}"
 
-                            if sudo unzip -o -j '/tmp/fg-support.zip' -x '__MACOSX*' '.*' '*/.*' -d "${INSTALL_DIR}" && [[ -e "${INSTALL_DIR}/fg-support.sh" && -e "${INSTALL_DIR}/launch-fg-support.sh" ]]; then
+                            if sudo unzip -jo '/tmp/fg-support.zip' -x '__MACOSX*' '.*' '*/.*' -d "${INSTALL_DIR}" && [[ -e "${INSTALL_DIR}/fg-support.sh" && -e "${INSTALL_DIR}/launch-fg-support.sh" ]]; then
                                 sudo chmod +x "${INSTALL_DIR}/"*'.sh'
 
                                 sudo rm -f '/usr/bin/fg-support'

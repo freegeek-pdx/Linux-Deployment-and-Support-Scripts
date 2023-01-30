@@ -1,9 +1,10 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell on 03/26/19
 # For Free Geek
-# Last Updated: 01/12/22
+# Last Updated: 01/09/23
 #
 # MIT License
 #
@@ -31,9 +32,9 @@
 
 
 if [[ "$(uname)" != 'Darwin' ]]; then
-    $(which mate-terminal &> /dev/null && echo 'mate-terminal --window' || echo 'gnome-terminal --window-with-profile-internal-id "0"') --title 'Installing Free Geek Support' --hide-menubar --geometry '80x25+0+0' -x bash -c "echo -e 'PREPARING TO INSTALL FREE GEEK SUPPORT (INTERNET IS REQUIRED)\n'
+    $([[ -f '/usr/bin/mate-terminal' ]] && echo 'mate-terminal --window' || echo 'gnome-terminal --window-with-profile-internal-id "0"') --title 'Installing Free Geek Support' --hide-menubar --geometry '80x25+0+0' -x bash -c "echo -e 'PREPARING TO INSTALL FREE GEEK SUPPORT (INTERNET IS REQUIRED)\n'
 for install_fg_support_attempt in {1..5}; do
-    actually_install_script_contents=\"\$(curl -m 5 -sL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh')\"
+    actually_install_script_contents=\"\$(curl -m 5 -sfL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh')\"
     if [[ \"\${actually_install_script_contents}\" == *'fg-support'* ]]; then
         echo \"\${actually_install_script_contents}\" | bash -s -- '$1'
         break

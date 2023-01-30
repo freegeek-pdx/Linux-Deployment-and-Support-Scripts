@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -23,7 +24,7 @@ if ! grep -qF ' boot=casper ' '/proc/cmdline'; then
     # if [[ ! -e '/usr/share/applications/fg-support.desktop' ]]; then
     #     for install_free_geek_support_attempt in {1..5}; do
     #         echo -e '\n\nPREPARING TO INSTALL FREE GEEK SUPPORT\n'
-    #         curl -m 5 -sL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh' | bash
+    #         curl -m 5 -sfL 'https://apps.freegeek.org/fg-support/download/actually-install-fg-support.sh' | bash
     #
     #         if [[ -e '/usr/share/applications/fg-support.desktop' ]]; then
     #             break
@@ -49,7 +50,7 @@ if ! grep -qF ' boot=casper ' '/proc/cmdline'; then
             sleep 1
 
             if [[ "$(wmctrl -l)"$'\n' == *$' Driver Manager\n'* ]]; then
-                wmctrl -r 'Driver Manager' -e '0,0,0,-1,-1'
+                wmctrl -r 'Driver Manager' -e '0,-100,-100,-1,-1' # In Mint 21.1, the "Driver Manager" window will not go all the way to the top right corner if "0,0" are specified, so use "-100,-100" instead to accomodate this behavior (and "wmctrl" will not put the window off screen even if "-100" is actuall too much).
                 wmctrl -F -a 'QA Helper' || wmctrl -F -a 'QA Helper  —  Loading'
                 break
             fi

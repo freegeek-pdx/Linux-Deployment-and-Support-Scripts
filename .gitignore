@@ -14,7 +14,7 @@
 OLD-*
 
 # Ignore specific folders within "Mint Installer Resources":
-dependencies/
+dependencies*/
 source-iso-boot-menus/
 
 # Ignore specific folders and files within "Other Stuff/QA Helper Auto-Scripts":

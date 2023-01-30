@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -51,7 +52,7 @@ if [[ "$(hostname)" == 'cubic' && -f '/usr/bin/setup-mint-live-rescue' ]]; then
 
 
     echo -e '\n\nINSTALLING MORE CUSTOM PACKAGES\n'
-    
+
     apt install --no-install-recommends -y libfsapfs-utils hfsprogs gsmartcontrol wxhexeditor nvme-cli memtester cheese stress-ng mint-meta-codecs || exit 1
 
 
@@ -63,69 +64,56 @@ if [[ "$(hostname)" == 'cubic' && -f '/usr/bin/setup-mint-live-rescue' ]]; then
 
 
     echo -e '\n\nINSTALLING FREE GEEK TECH SUPPORT SCRIPTS\n'
-    # fg-tstools: https://github.com/scottb0t/techsupporttools
-    # The correct latest version is the files in https://github.com/scottb0t/techsupporttools/tree/master/deb
+    # fg-tstools: https://github.com/scott-morris1/techsupporttools
+    # The correct latest version is the files in https://github.com/scott-morris1/techsupporttools/tree/master/deb
     # BUT NEITHER THE fg-tstools_current.deb NOR fg-tstools_testing.deb FILES CONTAIN THE CORRECT VERSION
-    
-    rm -rf '/tmp/fg-tstools'
-    mkdir '/tmp/fg-tstools'
-    cd '/tmp/fg-tstools' || exit 1
-    
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/etc/ts_network_backup.cfg' || exit 1
-    mv -f 'ts_network_backup.cfg' '/etc/ts_network_backup.cfg' || exit 1
-    
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/bin/ts_getid' || exit 1
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/bin/ts_identify_backups' || exit 1
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/bin/ts_network_backup' || exit 1
-    chmod +x 'ts_'* || exit 1
-    mv -f 'ts_'* '/usr/bin/' || exit 1
-    
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/lib/tstools/ts_exclude.txt' || exit 1
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/lib/tstools/ts_functions.sh' || exit 1
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/lib/tstools/ts_network_backup_functions.sh' || exit 1
-    chmod +x 'ts_'*'.sh' || exit 1
-    rm -rf '/usr/lib/tstools/'
-    mkdir '/usr/lib/tstools/'
-    mv -f 'ts_'* '/usr/lib/tstools/' || exit 1
-    
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/share/doc/fg-tstools/changelog.gz' || exit 1
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/share/doc/fg-tstools/copyright' || exit 1
-    wget 'https://raw.githubusercontent.com/scottb0t/techsupporttools/master/deb/usr/share/doc/fg-tstools/ts_exclude.txt' || exit 1
-    rm -rf '/usr/share/doc/fg-tstools/'
-    mkdir '/usr/share/doc/fg-tstools/'
-    mv -f ./* '/usr/share/doc/fg-tstools/' || exit 1
-    
-    cd '/tmp' || exit 1
-    rm -r '/tmp/fg-tstools' || exit 1
 
+    github_content_repo_base_url='https://raw.githubusercontent.com/scott-morris1/techsupporttools/master/deb'
+
+    rm -rf '/usr/lib/tstools/' '/usr/share/doc/fg-tstools/'
+
+    # NOTE: curl's "--progress-bar" option does not work when "--parallel" is also specified.
+    curl --connect-timeout 5 --parallel -fL --create-dirs --output-dir '/etc' \
+        -O "${github_content_repo_base_url}/etc/ts_network_backup.cfg" \
+        --next --create-dirs --output-dir '/usr/bin' \
+        -O "${github_content_repo_base_url}/usr/bin/ts_getid" \
+        -O "${github_content_repo_base_url}/usr/bin/ts_identify_backups" \
+        -O "${github_content_repo_base_url}/usr/bin/ts_network_backup" \
+        --next --create-dirs --output-dir '/usr/lib/tstools' \
+        -O "${github_content_repo_base_url}/usr/lib/tstools/ts_exclude.txt" \
+        -O "${github_content_repo_base_url}/usr/lib/tstools/ts_functions.sh" \
+        -O "${github_content_repo_base_url}/usr/lib/tstools/ts_network_backup_functions.sh" \
+        --next --create-dirs --output-dir '/usr/share/doc/fg-tstools' \
+        -O "${github_content_repo_base_url}/usr/share/doc/fg-tstools/changelog.gz" \
+        -O "${github_content_repo_base_url}/usr/share/doc/fg-tstools/copyright" \
+        -O "${github_content_repo_base_url}/usr/share/doc/fg-tstools/ts_exclude.txt" || exit 1
+
+    chmod +x '/usr/bin/ts_'* '/usr/lib/tstools/ts_'*'.sh' || exit 1
 
 
     echo -e '\n\nINSTALLING HFS+ RESCUE\n'
     # hfsprescue: https://www.plop.at/en/hfsprescue/download.html
-    
-    cd '/tmp' || exit 1
-    wget "$(curl -m 5 -sL 'https://www.plop.at/en/hfsprescue/download.html' 2> /dev/null | awk -F '=|>' '/precompiled.tar.gz/ { print $2; exit }')" -O 'hfsprescue-latest-precompiled.tar.gz' || exit 1
-    tar -xzvf 'hfsprescue-latest-precompiled.tar.gz' || exit 1
-    rm 'hfsprescue-latest-precompiled.tar.gz' || exit 1
-    mv 'hfsprescue-'*'-precompiled/Linux/hfsprescue_x64' '/usr/bin/hfsprescue' || exit 1
-    rm -r 'hfsprescue-'*'-precompiled' || exit 1
+
+    curl --connect-timeout 5 --progress-bar -fL "$(curl -m 5 -sfL 'https://www.plop.at/en/hfsprescue/download.html' 2> /dev/null | awk -F '=|>' '/precompiled.tar.gz/ { print $2; exit }')" -o '/tmp/hfsprescue-latest-precompiled.tar.gz' || exit 1
+    tar -xzvf '/tmp/hfsprescue-latest-precompiled.tar.gz' -C '/usr/bin/' --strip-components '2' --wildcards '*/Linux/hfsprescue_x64' || exit 1
+    rm '/tmp/hfsprescue-latest-precompiled.tar.gz' || exit 1
+    mv '/usr/bin/hfsprescue_x64' '/usr/bin/hfsprescue' || exit 1
 
 
 
     echo -e '\n\nINSTALLING HD SENTINEL\n'
     # hdsentinel: https://www.hdsentinel.com/hard_disk_sentinel_linux.php
-    
-    cd '/tmp' || exit 1
-    wget "$(curl -m 5 -sL 'https://www.hdsentinel.com/hard_disk_sentinel_linux.php' 2> /dev/null | awk -F '"' '/x64.gz/ { print $2; exit }')" -O 'hdsentinel-latest-x64.gz' || exit 1
-    gunzip 'hdsentinel-latest-x64.gz' || exit 1
-    mv 'hdsentinel-latest-x64' '/usr/bin/hdsentinel' || exit 1
+
+    curl --connect-timeout 5 --progress-bar -fL "$(curl -m 5 -sfL 'https://www.hdsentinel.com/hard_disk_sentinel_linux.php' 2> /dev/null | awk -F '"' '/x64.gz/ { print $2; exit }')" -o '/tmp/hdsentinel-latest-x64.gz' || exit 1
+    gunzip '/tmp/hdsentinel-latest-x64.gz' || exit 1
+    mv '/tmp/hdsentinel-latest-x64' '/usr/bin/hdsentinel' || exit 1
     chmod +x '/usr/bin/hdsentinel' || exit 1
 
 
 
     echo -e '\n\nSETTING AUTO LOGIN TO ALL TTYs FOR CLI MODE\n'
     # https://wiki.archlinux.org/index.php/Getty#Automatic_login_to_virtual_console
-    
+
     for this_tty_number in {1..6}
     do
         mkdir "/etc/systemd/system/getty@tty${this_tty_number}.service.d"
@@ -136,12 +124,12 @@ ExecStart=-/sbin/agetty --autologin mint --noclear %I $TERM
 Type=idle
 TTY_OVERRIDE_CONF_EOF
     done
-    
-    
-    
-    echo -e '\n\nSETTING AUTO RUN SETUP MINT LIVE RESCUE SCRIPT CINNAMON\n'
+
+
+
+    echo -e '\n\nSETTING AUTO RUN SETUP MINT LIVE RESCUE SCRIPT FOR CINNAMON\n'
     # Actual script is copied into squashfs-root by copy resources script
-    
+
     cat << SETUP_MLR_DESKTOP_FILE_EOF > '/tmp/setup-mint-live-rescue.desktop'
 [Desktop Entry]
 Version=1.0
@@ -157,36 +145,43 @@ SETUP_MLR_DESKTOP_FILE_EOF
 
     desktop-file-install --delete-original --dir '/etc/xdg/autostart/' '/tmp/setup-mint-live-rescue.desktop' || exit 1
     chmod +x '/etc/xdg/autostart/setup-mint-live-rescue.desktop' || exit 1
-    
-    
-    
-    echo -e '\n\nINCLUDING USB NETWORK ADAPTER MODULES IN INITRAMFS\n'
+
+
+
+    newest_kernel_version="$(find '/usr/lib/modules' -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort -rV | head -1)" # DO NOT use "uname -r" in the Cubic Terminal to get the kernel version since it returns the kernel version of the HOST OS rather than the CUSTOM ISO OS that has just been updated and they are not guaranteed to be the same.
+
+    echo -e "\n\nINCLUDING USB NETWORK ADAPTER MODULES IN INITRAMFS (${newest_kernel_version})\n"
     # Must be done after system updated or anything that would update initramfs
 
-    # Suppress ShellCheck suggestion to use "find" instead of "ls" since we need "ls -t" to sort by modification date to easily get a single result of the newest kernel version folder name, and this path will never contain non-alphanumeric characters.
-    # shellcheck disable=SC2012
-    find "/lib/modules/$(ls -t '/lib/modules/' | head -1)/kernel/drivers/net/usb" -type f -exec basename {} '.ko' \;  > '/usr/share/initramfs-tools/modules.d/network-usb-modules'
+    find "/usr/lib/modules/${newest_kernel_version}/kernel/drivers/net/usb" -type f -exec basename {} '.ko' \;  > '/usr/share/initramfs-tools/modules.d/network-usb-modules'
+    echo -e "ALL USB NETWORK MODULES: $(paste -sd ',' '/usr/share/initramfs-tools/modules.d/network-usb-modules')\n"
+
     orig_initramfs_config="$(< '/etc/initramfs-tools/initramfs.conf')"
     sed -i 's/COMPRESS=.*/COMPRESS=xz/' '/etc/initramfs-tools/initramfs.conf' || exit 1
-    # Use xz compression so the initrd file is as small as possible since it will also be loaded over the network via iPXE.
-    # Changing the compression also makes Cubic update the "initrd.lz" extension to "initrd.xz" so that needs to be used in all boot menus.
-    update-initramfs -u || exit 1
-    rm '/usr/share/initramfs-tools/modules.d/network-usb-modules' || exit 1
-    echo "${orig_initramfs_config}" > '/etc/initramfs-tools/initramfs.conf'
-    
-    
-    
+    # Use "xz" compression so the "initrd" file is as small as possible since it will be downloaded in advance over the network via iPXE and decompressed all at once,
+    # unlike the "sqaushfs" where we specifically don't want to use "xz" compression (see comments in "setup-mint-live-rescue-cubic-project.sh" for more info about that).
+    # Even though "xz" decompression is slower than "zstd" or other compressions, since the file is relatively small the different decompression speeds are not noticable when booting.
+    # Changing the compression also makes Cubic update the "initrd.lz" extension to "initrd.xz" so that needs to be used in all boot menus,
+    # but Cubic automatically updates the boot menu files to use the right extensions anyways,
+    # and the "ipxe-linux-booter.php" when booting via iPXE will find the "initrd" file with any extension).
+
+    update-initramfs -vu || exit 1 # Create new custom "initrd" file with the added modules.
+    rm '/usr/share/initramfs-tools/modules.d/network-usb-modules' || exit 1 # Reset modules and configuration to default
+    echo "${orig_initramfs_config}" > '/etc/initramfs-tools/initramfs.conf' # to not affect future updates of installed os.
+
+
+
     echo -e '\n\nUPDATING /ETC/ISSUE FILE\n'
-    
+
     echo -e "  Mint Live Rescue ($(lsb_release -rs))\n\n  \\l\n" > '/etc/issue'
-    
-    
-    
+
+
+
     echo -e '\n\nSUCCESSFULLY COMPLETED MINT LIVE RESCUE CUBIC TERMINAL COMMANDS'
 
     rm -f '/'*'.sh'
     rm -f '/root/'*'.sh'
-elif [ "$(hostname)" != 'cubic' ]; then
+elif [[ "$(hostname)" != 'cubic' ]]; then
     echo '!!! THIS SCRIPT MUST BE RUN IN CUBIC TERMINAL !!!'
     echo '>>> YOU CAN DRAG-AND-DROP THIS SCRIPT INTO THE CUBIC TERMINAL WINDOW TO COPY AND THEN RUN IT FROM WITHIN THERE <<<'
     read -r

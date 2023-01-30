@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -34,10 +35,12 @@ cd 'ipxe/src'
 # 2) SET BUILD CONFIGURATION OPTIONS: (https://ipxe.org/buildcfg)
 
 # UNCOMMENT IN config/general.h: #define POWEROFF_CMD, #define PARAM_CMD, #define PING_CMD, #define CONSOLE_CMD
-sed -i 's|//#define POWEROFF_CMD|#define POWEROFF_CMD // ENABLED FOR FREE GEEK|' 'config/general.h'
-sed -i 's|//#define PARAM_CMD|#define PARAM_CMD // ENABLED FOR FREE GEEK|' 'config/general.h'
-sed -i 's|//#define PING_CMD|#define PING_CMD // ENABLED FOR FREE GEEK|' 'config/general.h'
-sed -i 's|//#define CONSOLE_CMD|#define CONSOLE_CMD // ENABLED FOR FREE GEEK|' 'config/general.h'
+sed -i \
+    -e 's|//#define POWEROFF_CMD|#define POWEROFF_CMD // ENABLED FOR FREE GEEK|' \
+    -e 's|//#define PARAM_CMD|#define PARAM_CMD // ENABLED FOR FREE GEEK|' \
+    -e 's|//#define PING_CMD|#define PING_CMD // ENABLED FOR FREE GEEK|' \
+    -e 's|//#define CONSOLE_CMD|#define CONSOLE_CMD // ENABLED FOR FREE GEEK|' \
+    'config/general.h'
 if (( $(grep -cF 'ENABLED FOR FREE GEEK' 'config/general.h') != 4 )); then
     echo -e '\nERROR: FAILED TO ENABLE REQUIRED SETTINGS IN config/general.h'
     read -r

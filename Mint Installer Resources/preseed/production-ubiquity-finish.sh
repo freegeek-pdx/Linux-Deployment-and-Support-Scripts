@@ -1,8 +1,9 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell
-# Last Updated: 11/28/22
+# Last Updated: 01/25/23
 #
 # MIT License
 #
@@ -24,8 +25,15 @@ readonly MODE
 
 echo "--data-urlencode \"base_end_time=$(date +%s)\" \\" >> '/tmp/post_install_time.sh'
 
-if [[ -d '/usr/local/share/build-info' && ! -d '/target/usr/local/share/build-info' ]]; then
-    cp -rf '/usr/local/share/build-info' '/target/usr/local/share/build-info' # Copy build-info to installed OS in case QA Helper was used during pre-install.
+if [[ -d '/usr/local/share/build-info' && ! -d '/target/usr/local/share/build-info' ]]; then # Copy build-info to installed OS in case QA Helper was used during pre-install.
+    cp -rf '/usr/local/share/build-info' '/target/usr/local/share/build-info'
+fi
+
+if [[ -d '/cdrom/preseed/dependencies/geekbench' && ! -d '/target/home/oem/.local/geekbench' ]]; then # Copy Geekbench from "dependencies" to "oem" users home in installed OS.
+    mkdir -p '/target/home/oem/.local/bin'
+    cp -rf '/cdrom/preseed/dependencies/geekbench' '/target/home/oem/.local/geekbench'
+    ln -s '/home/oem/.local/geekbench/geekbench5' '/target/home/oem/.local/bin/geekbench'
+    chown -Rfh 1000:1000 '/target/home/oem/.local' # The whole ".local" folder will be created here, so it must be changed to be owned by the "oem" user instead of "root".
 fi
 
 if [[ -e '/tmp/detailed_hostname.txt' ]]; then

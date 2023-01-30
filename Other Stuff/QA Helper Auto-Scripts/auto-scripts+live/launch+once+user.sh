@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -35,6 +36,8 @@ fi
 
 if ! crontab -l 2> /dev/null | grep -qF 'launch-qa-helper'; then
     echo 'ADDING QA HELPER TO USER CRON JOBS TO LAUNCH EVERY 30 MINUTES'
+    # Suppress ShellCheck warning that "DESKTOP_SESSION" and "XDG_CURRENT_DESKTOP" are referenced but not assigned since they will actually be assigned by the environment when this script is run on Linux.
+    # shellcheck disable=SC2154
     echo -e "$(crontab -l 2> /dev/null)\n*/30 * * * * DISPLAY='${DISPLAY}' DESKTOP_SESSION='${DESKTOP_SESSION}' XDG_CURRENT_DESKTOP='${XDG_CURRENT_DESKTOP}' ${HOME}/.local/qa-helper/launch-qa-helper no-focus 2>&1 | logger -t launch-qa-helper" | crontab -
 fi
 
@@ -124,8 +127,8 @@ fi
 if [[ ! -d "${HOME}/Pictures/Free Geek Promo Pics" ]]; then
     echo 'DOWNLOADING FREE GEEK IMAGES FOR SLIDESHOW SCREENSAVER'
     rm -f '/tmp/qa-helper_free-geek_promo-pics.zip'
-    curl --connect-timeout 5 --progress-bar -L "http$(ping 'tools.freegeek.org' -W 2 -c 1 &> /dev/null && echo '://tools' || echo 's://apps').freegeek.org/qa-helper/download/resources/linux/free-geek_promo-pics.zip" -o '/tmp/qa-helper_free-geek_promo-pics.zip'
-    unzip -q -o '/tmp/qa-helper_free-geek_promo-pics.zip' -x '__MACOSX*' '.*' '*/.*' -d "${HOME}/Pictures"
+    curl --connect-timeout 5 --progress-bar -fL "http$(ping 'tools.freegeek.org' -W 2 -c 1 &> /dev/null && echo '://tools' || echo 's://apps').freegeek.org/qa-helper/download/resources/linux/free-geek_promo-pics.zip" -o '/tmp/qa-helper_free-geek_promo-pics.zip'
+    unzip -qo '/tmp/qa-helper_free-geek_promo-pics.zip' -x '__MACOSX*' '.*' '*/.*' -d "${HOME}/Pictures"
     rm -f '/tmp/qa-helper_free-geek_promo-pics.zip'
 fi
 

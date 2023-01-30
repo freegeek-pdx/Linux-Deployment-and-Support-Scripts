@@ -1,8 +1,9 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell
-# Last Updated: 11/28/22
+# Last Updated: 01/26/23
 #
 # MIT License
 #
@@ -47,19 +48,17 @@ if grep -qF ' ip=dhcp ' '/proc/cmdline'; then
     # Below, the local Free Geek DNS server is assigned for every available network connection on the system (just to be completely thorough since setting DNS for any inactive connnections doesn't hurt).
     # It would also be possible to use "resolvectl dns" to set the DNS server, but since I'm getting the interface names from "nmcli", I'll continue using "nmcli" to set the DNS server.
 
-    IFS=$'\n'
-    for this_network_interface_name in $(nmcli -t -f NAME connection show); do
+    while IFS='' read -r this_network_interface_name; do
         echo -e ">>\n>\nVERIFY SCRIPT DEBUG: MANUALLY SETTING DNS SERVER FOR \"${this_network_interface_name}\"\n<\n<<"
         nmcli connection modify "${this_network_interface_name}" ipv4.dns '192.168.253.11' # Local Free Geek DNS server IP.
-    done
-    unset IFS
+    done < <(nmcli -t -f NAME connection show)
 fi
 
 
 cp -f '/cdrom/preseed/dependencies/org.gnome.Cheese.gschema.xml' '/usr/share/glib-2.0/schemas/' # Install Cheese schemas so Cheese can be run from /cdrom/preseed/dependencies/ (called from QA Helper)
 glib-compile-schemas '/usr/share/glib-2.0/schemas/' # Schemas must be compiled after installation
 
-echo -e "#!/bin/bash\n\ncurl -sL -m 5 'http://tools.freegeek.org/qa-helper/log_install_time.php' \\" > '/tmp/post_install_time.sh'
+echo -e "#!/bin/bash\n\ncurl -m 5 -sfL 'http://tools.freegeek.org/qa-helper/log_install_time.php' \\" > '/tmp/post_install_time.sh'
 
 if [[ "${MODE}" == 'testing' ]]; then
     LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -geometry 80x25+0+0 -sb -sl 999999 -e 'echo -e "USE ME FOR DEBUGGING\n\n"; bash' &
@@ -138,93 +137,123 @@ while true; do
         echo -e '>>\n>\nVERIFY SCRIPT DEBUG: TIME IS NOT SYNCED\n<\n<<'
     fi
 
-    rm -f 'QAHelper-linux-jar.zip'
-    rm -f 'QA_Helper.jar'
-
     echo -e '>>\n>\nVERIFY SCRIPT DEBUG: STARTING "QA Helper" DOWNLOAD\n<\n<<'
-    
-    for download_qa_helper_attempt in {1..5}; do
-        curl --connect-timeout 5 -sLO "http$([[ "${MODE}" == 'testing' ]] && echo '://tools' || echo 's://apps').freegeek.org/qa-helper/download/QAHelper-linux-jar.zip"
 
-        if [[ -f 'QAHelper-linux-jar.zip' ]]; then
-            unzip -o -j 'QAHelper-linux-jar.zip' 'QA_Helper.jar'
-            rm 'QAHelper-linux-jar.zip'
-            
-            if [[ -f 'QA_Helper.jar' ]]; then
+    rm -f 'QAHelper-linux-jar.zip' 'QA_Helper.jar'
+
+    if ( # See comments below "zenity" command about why this is loop and pipe to "zenity" is in a SUBSHELL.
+        for download_qa_helper_attempt in {1..6}; do
+            # Occasionally the first download attempt in the pre-install environment goes very slow or hangs for some reason. But, the next attempt will work properly and quickly.
+            # So, to accommodate this possible flakiness while still finishing quickly whether or not the first download is slow, timeout after 5 seconds.
+            # BUT, also CONTINUE/resume previously timed out downloads (by specifying "-C -" and NOT deleting the ".zip" when timed out).
+            # This way, any timed out downloads are not a total waste of time and the download should finish within 2 attempts, but 6 attempts will be made to be extra safe.
+            # (The "curl" builtin "--retry" option cannot be used for this scenario since it DOES NOT honor the "-C -" option and will delete and start over the download on each re-attempt.)
+
+            if (( download_qa_helper_attempt > 1 )) && [[ "$(wmctrl -l 2> /dev/null)"$'\n' != *$' Downloading QA Helper\n'* ]]; then
+                # If "zenity --progress" is manually canceled, the loop would continue in the background (see comments below "zenity" command for more info).
+                # So, check if the progress window has been closed and break the loop if so.
+                # But, must NOT check right when loop starts since it takes a moment for the progress window to open (which could be after this check would be done on the first iteration).
+                # NOTE: When the "zenity" window is *closed* (not canceled), "wmctrl -l" will output the expected window list which will not include the "zenity" progress window and break the loop.
+                # BUT, when "zenity" is *canceled* (which exits this subshell), "wmctrl -l" may error and return nothing, which will still properly result in the test failing and breaking the loop.
                 break
-            else
+            fi
+
+            curl -m 5 -C - -sfLO "http$([[ "${MODE}" == 'testing' ]] && echo '://tools' || echo 's://apps').freegeek.org/qa-helper/download/QAHelper-linux-jar.zip"
+            curl_exit_code="$?"
+
+            if [[ -f 'QAHelper-linux-jar.zip' ]]; then
+                if (( curl_exit_code == 0 )); then
+                    unzip -jqo 'QAHelper-linux-jar.zip' 'QA_Helper.jar' # NOTE: Must specify "-q" since if the "zenity" window is *closed* "curl" could finish successfully and this "unzip" command could still be run, but the pipe will be broken and any command that tries to send to stdout will fail with a broken pipe error. This issue is avoided by not having "unzip" ever send anything to stdout.
+                    rm 'QAHelper-linux-jar.zip'
+                    
+                    if [[ -f 'QA_Helper.jar' ]]; then
+                        break
+                    fi
+                elif (( curl_exit_code != 28 )); then # If timed out ("curl" exit code "28"), DO NOT delete the incomplete ".zip" since it will be resumed by "curl" since "-C -" is specified.
+                    rm -f 'QAHelper-linux-jar.zip'
+                fi
+            fi
+
+            if (( download_qa_helper_attempt > 1 )) && [[ "$(wmctrl -l 2> /dev/null)"$'\n' != *$' Downloading QA Helper\n'* ]]; then
+                # Since "zenity --progress" could be canceled at any point in this loop body, we must also check if the progress window is closed at the end to be able to break before sleeping.
+                # And also still don't check on the first iteration since if "curl" failed very quickly (such as when internet is not available), the progress window may still not be open yet.
+                break
+            fi
+
+            if (( download_qa_helper_attempt < 6 )); then # Don't sleep after final attempt.
                 sleep "${download_qa_helper_attempt}"
             fi
-        else
-            sleep "${download_qa_helper_attempt}"
-        fi
-    done | zenity \
-        --progress \
-        --title 'Downloading QA Helper' \
-        --text '\nPlease wait while downloading QA Helper...\n' \
-        --width '400' \
-        --auto-close \
-        --no-cancel \
-        --pulsate
-    
-    echo -e '>>\n>\nVERIFY SCRIPT DEBUG: FINISHED "QA Helper" DOWNLOAD\n<\n<<'
-    
-    if [[ -f 'QA_Helper.jar' ]]; then
-        '/cdrom/preseed/dependencies/java-jre/bin/java' -jar 'QA_Helper.jar'
+        done | zenity \
+            --progress \
+            --title 'Downloading QA Helper' \
+            --text '\nPlease wait while downloading QA Helper...\n\nIf download is taking too long, press "Cancel" and then "Try Again".\n' \
+            --width '430' \
+            --pulsate \
+            --auto-close \
+            --auto-kill
+            # DO NOT set "--no-cancel" for this "zenity --progress" so that the download can be stopped early it's hanging and the technican doesn't want to wait for all the re-attempts to complete.
+            # "--auto-kill" is set so that if the progress is canceled, the script doesn't just continue hanging on the stalled out "curl" command.
+            # BUT, for "--auto-kill" to NOT terminate the WHOLE script, the entire loop and pipe to "zenity" MUST be in a SUBSHELL (in parenthesis) so that only the subshell is terminated rather than the whole parent script.
+            # When cancel is pressed, the subshell will exit immediately with a non-zero exit code and the script will continue, BUT the loop continue and child processes of the subshell (ie. "curl", "sleep", etc) could still be running in the background when that happens.
+            # So, a "loop-canceled" flag file will be set and "curl" and "sleep" will be manually killed in the "else" statement below when the subshell exits with a non-zero exit code (ie. when "zenity --progress" is canceled)
+            # so that the processes will stop and the loop can check for the flag to break when canceled instead of continuing in the backgroud.
+    ); then
+        echo -e '>>\n>\nVERIFY SCRIPT DEBUG: FINISHED "QA Helper" DOWNLOAD\n<\n<<'
+    elif [[ -f 'QA_Helper.jar' ]]; then # When the "zenity" window is *closed* (not canceled), the subshell is not exited immediately and loop will continue (until it is manually broken by checking if the "zenity" window is no longer open).
+        # If the "zenity" window is closed when "curl" is running and "curl" finishes successfully, the ".jar" could successfully be unzipped.
+        # BUT, since the "zenity" window was closed, "zenity" will end with a non-zero exit code of 1, which makes the primary success condition not get hit.
+        # So, check if the ".jar" exists on failure and still consider it a success even though it finished with the progress window closed and a non-zero exit code.
 
+        while pgrep -f '^unzip .*QA_Helper\.jar$' &> /dev/null; do # BUT ALSO, if *canceled* at the perfect time when "curl" finished but "unzip" may still be running in the background, wait for it to finish since the download actually finished properly.
+            echo -e '>>\n>\nVERIFY SCRIPT DEBUG: WAITING FOR UNZIP TO FINISH AFTER CANCELING "QA Helper" DOWNLOAD (BUT DOWNLOAD ALREADY FINISHED)\n<\n<<'
+            sleep 1
+        done
+
+        echo -e '>>\n>\nVERIFY SCRIPT DEBUG: FINISHED "QA Helper" DOWNLOAD (WITH PROGRESS WINDOW CLOSED)\n<\n<<'
+    else
+        pkill -f '^curl .*/QAHelper-linux-jar\.zip$' || pkill -f '^unzip .*QA_Helper\.jar$' || killall sleep
+        rm -f 'QAHelper-linux-jar.zip' 'QA_Helper.jar'
+        echo -e '>>\n>\nVERIFY SCRIPT DEBUG: CANCELED "QA Helper" DOWNLOAD\n<\n<<'
+    fi
+
+    if [[ -f 'QA_Helper.jar' ]] && '/cdrom/preseed/dependencies/java-jre/bin/java' -jar 'QA_Helper.jar'; then # Only continue if the "QA_Helper.jar" file was valid and able to be lauched by "java -jar".
         desktop_environment="$(awk -F '=' '($1 == "Name") { print $2; exit }' '/usr/share/xsessions/'*)" # Can't get desktop environment from DESKTOP_SESSION or XDG_CURRENT_DESKTOP in pre-install environment.
         desktop_environment="${desktop_environment%% (*)}"
-        if [[ -n "$desktop_environment" ]]; then
+        if [[ -n "${desktop_environment}" ]]; then
             desktop_environment=" (${desktop_environment})"
         fi
 
         release_codename="$(lsb_release -cs)"
-        if [[ -n "$release_codename" ]]; then
+        if [[ -n "${release_codename}" ]]; then
             release_codename=" ${release_codename^}"
         fi
-       
-        
-        while true; do
-            # Sort lsblk output by size smallest to largest because we will generally want to install onto the smallest drive.
-            lsblk_drive_list="$(lsblk -a -b -d -p -P -x SIZE -o NAME,SIZE,TRAN,ROTA,TYPE | awk -F '"' '($(NF-1) == "disk") && ($4) && (index($6, "ata") || ($6 == "nvme"))')" # Only list DISKs with a SIZE that have a TRANsport type of SATA or ATA or NVMe.
-            lsblk_drive_list="${lsblk_drive_list// TYPE=\"disk\"/}" # Get rid of TYPE because we don't need it for display. (Only needed it to properly filter the list.)
-            
-            install_drives_array=()
-            
-            if [[ -n "$lsblk_drive_list" ]]; then
-                this_drive_id=''
-                this_drive_transport=''
-                
-                for this_drive_list_element in ${lsblk_drive_list}; do
-                    this_drive_list_element_key="${this_drive_list_element:0:4}"
-                    this_drive_list_element_value="${this_drive_list_element:6:-1}"
-                    
-                    if [[ "${this_drive_list_element_key}" == 'NAME' ]]; then
-                        this_drive_id="${this_drive_list_element_value}"
-                        install_drives_array+=( "${this_drive_id}" "${this_drive_id##*/}" )
-                    elif [[ "${this_drive_list_element_key}" == 'SIZE' ]]; then
-                        install_drives_array+=( "$(( this_drive_list_element_value / 1000 / 1000 / 1000 )) GB" )
-                    elif [[ "${this_drive_list_element_key}" == 'TRAN' ]]; then
-                        this_drive_transport="$([[ "${this_drive_list_element_value}" == 'nvme' ]] && echo 'NVMe ' || echo "${this_drive_list_element_value^^} ")"
-                    elif [[ "${this_drive_list_element_key}" == 'ROTA' ]]; then
-                        this_drive_HDD_or_SSD="$([[ "${this_drive_list_element_value}" == '1' ]] && echo 'HDD' || echo 'SSD')"
-                        install_drives_array+=( "${this_drive_transport}${this_drive_HDD_or_SSD}" )
-                        
-                        hdparm_drive_model="$(hdparm -I "${this_drive_id}" | grep -F 'Model Number:' | xargs | cut -c 15-)" # Use hdparm for model because lsblk gets model from sysfs ("/sys/block/<name>/device/model") which is truncated.
-                        
-                        if [[ -n "${hdparm_drive_model}" ]]; then
-                            install_drives_array+=( "${hdparm_drive_model}" )
-                        else
-                            sysfs_drive_model="$(xargs -a "/sys/block/${this_drive_id##*/}/device/model")"
-                            install_drives_array+=( "${sysfs_drive_model:-UNKNOWN Drive Model}" )
-                        fi
 
-                        this_drive_id=''
-                        this_drive_transport=''
+
+        while true; do
+            declare -a install_drives_array=()
+
+            while IFS='"' read -r _ this_drive_full_id _ this_drive_size_bytes _ this_drive_transport _ this_drive_rota _ this_drive_type; do
+                # Split lines on double quotes (") to easily extract each value out of each "lsblk" line, which will be like: NAME="/dev/sda" SIZE="1234567890" TRAN="sata" ROTA="0" TYPE="disk"
+                # Use "_" to ignore field titles that we don't need. See more about "read" usages with IFS and skipping values at https://mywiki.wooledge.org/BashFAQ/001#Field_splitting.2C_whitespace_trimming.2C_and_other_input_processing
+
+                if [[ "${this_drive_type}" == 'disk' && -n "${this_drive_size_bytes}" && ( "${this_drive_transport}" == *'ata' || "${this_drive_transport}" == 'nvme' ) ]]; then # Only list DISKs with a SIZE that have a TRANsport type of SATA or ATA or NVMe.
+                    this_drive_id="${this_drive_full_id##*/}"
+
+                    this_drive_model="$(hdparm -I "${this_drive_full_id}" | grep -F 'Model Number:' | cut -d ':' -f 2- | tr -s '[:space:]' ' ' | sed -E 's/^ | $//g')" # Use "hdparm" for model because "lsblk" gets model from sysfs ("/sys/block/<name>/device/model") which is truncated. After "tr -s" there could still be a single leading and/or trailing space, so use "sed" to remove them.
+                    if [[ -z "${this_drive_model}" ]]; then
+                        this_drive_model="$(tr -s '[:space:]' ' ' < "/sys/block/${this_drive_id}/device/model" | sed -E 's/^ | $//g')" # After "tr -s" there could still be a single leading and/or trailing space, so use "sed" to remove them.
                     fi
-                done
-            fi
-            
+
+                    install_drives_array+=(
+                        "${this_drive_full_id}"
+                        "${this_drive_id}"
+                        "$(( this_drive_size_bytes / 1000 / 1000 / 1000 )) GB"
+                        "${this_drive_transport^^[^e]} $( (( this_drive_rota )) && echo 'HDD' || echo 'SSD' )"
+                        "${this_drive_model:-UNKNOWN Drive Model}"
+                    )
+                fi
+            done < <(lsblk -abdPpo 'NAME,SIZE,TRAN,ROTA,TYPE' -x 'SIZE') # Sort "lsblk" output by size smallest to largest because we will generally want to install onto the smallest drive.
+
             if (( "${#install_drives_array[@]}" >= 5 )); then
                 readarray -t install_drive_details_array < <(zenity \
                     --list \
@@ -250,8 +279,7 @@ while true; do
                         if zenity --question --title 'Confirm Installation' --no-wrap --text "Are you sure you want to <b>COMPLETELY ERASE</b> the following\ndrive and <b>INSTALL</b> <i>$(lsb_release -ds)${release_codename}${desktop_environment}</i> onto it?\n\n<tt><small><b>   ID:</b></small></tt> ${install_drive_details_array[1]}\n<tt><small><b> Size:</b></small></tt> ${install_drive_details_array[2]}\n<tt><small><b> Kind:</b></small></tt> ${install_drive_details_array[3]}\n<tt><small><b>Model:</b></small></tt> ${install_drive_details_array[4]}"; then
                             echo "--data-urlencode \"version=$(lsb_release -ds)${release_codename}${desktop_environment}\" --data-urlencode \"drive_type=${install_drive_details_array[3]}\" --data-urlencode \"base_start_time=$(date +%s)\" \\" >> '/tmp/post_install_time.sh'
                             
-                            killall xterm 2> /dev/null # Always try to killall xterm because it could have been opened by QA Helper even when not in test mode.
-                            killall firefox 2> /dev/null # Always try to killall firefox because it could have been opened by QA Helper.
+                            killall xterm firefox 2> /dev/null # Always try to killall "xterm" and "firefox" because they could have been opened by QA Helper even when not in test mode.
                             
                             exit 0
                         fi

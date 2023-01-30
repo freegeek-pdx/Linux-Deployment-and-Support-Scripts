@@ -1,8 +1,9 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # Created by Pico Mitchell
-# Last Updated: 11/23/22
+# Last Updated: 01/09/23
 #
 # MIT License
 #
@@ -39,12 +40,10 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
         # Below, the local Free Geek DNS server is assigned for every available network connection on the system (just to be completely thorough since setting DNS for any inactive connnections doesn't hurt).
         # It would also be possible to use "resolvectl dns" to set the DNS server, but since I'm getting the interface names from "nmcli", I'll continue using "nmcli" to set the DNS server.
 
-        IFS=$'\n'
-        for this_network_interface_name in $(nmcli -t -f NAME connection show); do
+        while IFS='' read -r this_network_interface_name; do
             echo -e "${SETUP_MLR_PID}:\tMANUALLY SETTING DNS SERVER FOR \"${this_network_interface_name}\" AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
             nmcli connection modify "${this_network_interface_name}" ipv4.dns '192.168.253.11' # Local Free Geek DNS server IP.
-        done
-        unset IFS
+        done < <(nmcli -t -f NAME connection show)
     fi
 
 
@@ -201,7 +200,7 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
             echo -e "${SETUP_MLR_PID}:\tINSTALLING QA HELPER AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
             
             for install_qa_helper_attempt in {1..120}; do # Try for 2 minutes to install QA Helper in case internet isn't ready right away
-                curl -m 5 -sL 'https://apps.freegeek.org/qa-helper/download/actually-install-qa-helper.sh' | bash
+                curl -m 5 -sfL 'https://apps.freegeek.org/qa-helper/download/actually-install-qa-helper.sh' | bash
 
                 if [[ -e "${HOME}/Desktop/qa-helper.desktop" ]]; then
                     rm -f "${HOME}/.config/autostart/qa-helper.desktop"

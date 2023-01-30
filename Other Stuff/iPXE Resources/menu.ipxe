@@ -28,11 +28,11 @@ iseq ${platform} pcbios && set TFTP_OR_HTTP tftp || set TFTP_OR_HTTP http
 # NOTE: UEFI boots required "initrd=[INITRD-FILENAME]" as a kernel parameter to boot properly. This is not required (but does not cause problems) for BIOS boots.
 # NOTE: Ubuntu 19.10 (Mint 20) or newer requires "ip=dhcp" as boot arg: https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018
 
-set PRODUCTION_MINT_VERSION                     21
-set TESTING_MINT_VERSION                        21
+set PRODUCTION_MINT_VERSION                     21.1
+set TESTING_MINT_VERSION                        21.1
 
-set PRODUCTION_LIVE_RESCUE_MINT_VERSION         21
-set TESTING_LIVE_RESCUE_MINT_VERSION            21
+set PRODUCTION_LIVE_RESCUE_MINT_VERSION         21.1
+set TESTING_LIVE_RESCUE_MINT_VERSION            21.1
 
 set PRODUCTION_WINDOWS_FEATURE_VERSION          2022 Update, 22H2
 set TESTING_WINDOWS_FEATURE_VERSION             2022 Update, 22H2
@@ -46,16 +46,17 @@ set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows 10 Pro (${PRODUC
 
 set HDT_TITLE                                   Hardware Detection Tool (0.5.2)
 set HDS_DOS_TITLE                               Hard Disk Sentinel (DOS Edition 1.21)
-set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 10)
-set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 6)
+set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 10.2)
+set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 6.01)
 set KEYBOARD_TESTER_TITLE                       Keyboard and Mouse Tester
 
 set PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE  Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} Cinnamon)
 set PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE       Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} CLI)
 set PRODUCTION_WINDOWS_RECOVERY_TITLE           Windows 11 Recovery Environment (${PRODUCTION_WINDOWS_FEATURE_VERSION})
+set PRODUCTION_WINDOWS_IPDT                     Install Windows 10 Pro (${PRODUCTION_WINDOWS_FEATURE_VERSION}) with IPDT for Intel CPU Testing
 set PARTEDMAGIC_TITLE                           Parted Magic (2021_02_28)
-set GPARTED_TITLE                               GParted (1.4.0-5)
-set CLONEZILLA_TITLE                            Clonezilla (3.0.1-8)
+set GPARTED_TITLE                               GParted (1.4.0-6)
+set CLONEZILLA_TITLE                            Clonezilla (3.0.2-21)
 
 set BIOS_ONLY_TOOLS_NOTE                        * Starred tools are not compatible with UEFI. Reboot in Legacy BIOS mode to use them.
 
@@ -208,7 +209,7 @@ goto error
 :straight-to-memtest
 iseq ${platform} efi && menu Would you like to load ${MEMTEST86_TITLE}? || menu Would you like to load ${MEMTEST86PLUS_TITLE}?
 item --gap
-item --gap This MAC (${mac}) has been configured to load straight into RAM Stress Test.
+item --gap This MAC (${mac}) is configured to load straight into RAM Stress Test.
 item --gap
 item --gap
 iseq ${platform} efi && item --key Y memtest86 [Y] Yes, Load ${MEMTEST86_TITLE} || item --key Y memtest86plus [Y] Yes, Load ${MEMTEST86PLUS_TITLE}
@@ -300,6 +301,8 @@ item --key T production-live-rescue-mint-cli                    [T] ${PRODUCTION
 item --gap
 item --key W production-windows-recovery-environment            [W] ${PRODUCTION_WINDOWS_RECOVERY_TITLE}
 item --gap
+item --key I production-windows-ipdt                            [I] ${PRODUCTION_WINDOWS_IPDT}
+item --gap
 item --key P partedmagic                                        [P] ${PARTEDMAGIC_TITLE}
 item --key G gparted                                            [G] ${GPARTED_TITLE}
 item --key C clonezilla                                         [C] ${CLONEZILLA_TITLE}
@@ -349,6 +352,32 @@ initrd -n winpeshl.ini --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scri
 echo
 echo
 echo Downloading Windows Recovery Environment Image...
+iseq ${platform} pcbios && echo PLEASE NOTE: This will take about 3 minutes in Legacy BIOS mode. || echo PLEASE NOTE: This will take about 10 seconds in UEFI mode.
+echo
+initrd -n boot.wim ${TFTP_OR_HTTP}://${PXE_SERVER}/windows/${PRODUCTION_WINPE_IMAGE_NAME}.wim boot.wim || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/wimboot gui quiet ||
+goto error
+
+:production-windows-ipdt
+echo
+echo ${PRODUCTION_WINDOWS_IPDT}
+# See ":testing-install-windows" for info about wimboot setup and configuration.
+echo
+echo
+echo Setting IPDT (Intel Processor Diagnostic Tool) Flag...
+echo
+
+# "winpeshl.ini" and "Install Windows.ps1" are included in WinPE image but can be overwritten by iPXE here when testing updates.
+#initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/winpeshl.ini                                           winpeshl.ini || goto error
+#initrd --timeout 3000 -n InstallWindows.ps1 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/testing/Install%20Windows.ps1    InstallWindows.ps1 || goto error
+
+# Including the "fgFLAG-IPDT" file here to set the Windows installation to auto-run "Intel Processor Diagnostic Tool" instead of "QA Helper" when setup is finished:
+initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/production/fgFLAG-IPDT fgFLAG-IPDT || goto error
+
+echo
+echo
+echo Downloading Windows Preinstallation Environment Image...
 iseq ${platform} pcbios && echo PLEASE NOTE: This will take about 3 minutes in Legacy BIOS mode. || echo PLEASE NOTE: This will take about 10 seconds in UEFI mode.
 echo
 initrd -n boot.wim ${TFTP_OR_HTTP}://${PXE_SERVER}/windows/${PRODUCTION_WINPE_IMAGE_NAME}.wim boot.wim || goto error
@@ -512,8 +541,8 @@ echo
 #initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/winpeshl.ini                                           winpeshl.ini || goto error
 #initrd --timeout 3000 -n InstallWindows.ps1 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/testing/Install%20Windows.ps1    InstallWindows.ps1 || goto error
 
-# Including the "TESTING" file here puts the "Install Windows.ps1" script into Test Mode:
-initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/testing/TESTING TESTING || goto error
+# Including the "fgFLAG-TEST" file here puts the "Install Windows.ps1" script into Test Mode:
+initrd --timeout 3000 ${TFTP_OR_HTTP}://${PXE_SERVER}/winpe-scripts/testing/fgFLAG-TEST fgFLAG-TEST || goto error
 
 echo
 echo

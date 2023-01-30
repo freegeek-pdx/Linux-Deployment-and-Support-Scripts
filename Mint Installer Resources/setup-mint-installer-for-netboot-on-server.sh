@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -22,11 +23,29 @@
 
 set -ex
 
-only_update_scripts="$([[ "$1" == 'scripts' ]] && echo 'true' || echo 'false')"
+os_version="$1"
+version_suffix="$2"
+desktop="${3:-cinnamon}"
 
-os_version='21'
-version_suffix=''
-desktop='cinnamon'
+if [[ -z "${os_version}" ]]; then
+    >&2 echo -e '\nERROR: MUST SPECIFY OS VERSION AS FIRST ARGUMENT\n'
+    exit 1
+fi
+
+only_update_scripts="$([[ "$4" == 'scripts' ]] && echo 'true' || echo 'false')"
+
+if ! $only_update_scripts; then # Also allow optional args to be omitted when only updating scripts.
+    if [[ "${version_suffix}" == 'scripts' ]]; then
+        only_update_scripts=true
+        version_suffix=''
+    fi
+
+    if [[ "${desktop}" == 'scripts' ]]; then
+        only_update_scripts=true
+        desktop='cinnamon'
+    fi
+fi
+
 
 # ALWAYS USE MOST RECENT ISO FOR THE SPECIFIED VERSION:
 # Suppress ShellCheck suggestion to use find instead of ls to better handle non-alphanumeric filenames since this will only ever be alphanumeric filenames.
@@ -34,8 +53,16 @@ desktop='cinnamon'
 source_iso_path="$(ls -t "/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}"*'.iso' | head -1)"
 
 # UNCOMMENT TO OVERRIDE WITH SPECIFIC ISO:
-#source_iso_path="/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}.iso"
-#source_iso_path="/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}-updated-YY.MM.DD.iso"
+# source_iso_path="/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}.iso"
+# source_iso_path="/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}-updated-YY.MM.DD.iso"
+
+if [[ -f "${source_iso_path}" ]]; then
+    echo -e "\nPRESS ENTER TO CONTINUE WITH ISO PATH \"${source_iso_path}\" (OR PRESS CONTROL-C TO CANCEL)"
+    read -r
+else
+    >&2 echo -e "\nERROR: SOURCE ISO NOT FOUND AT \"${source_iso_path:-/srv/setup-resources/images/linuxmint-${os_version}-${desktop}-64bit${version_suffix}*.iso}\"\n"
+    exit 2
+fi
 
 custom_installer_resources_path="$(cd "${BASH_SOURCE[0]%/*}" &> /dev/null && pwd -P)"
 
@@ -61,7 +88,7 @@ if ! $only_update_scripts; then
     mkdir -p "${output_tftp_path}"
     cp "${tmp_mount_path}/casper/initrd"* "${tmp_mount_path}/casper/vmlinuz" "${output_tftp_path}/"
 
-    time rsync -aHv "${tmp_mount_path}/" "${output_nfs_path}"
+    time rsync --progress -aHv "${tmp_mount_path}/" "${output_nfs_path}"
 
     sudo umount "${tmp_mount_path}"
     rm -rf "${tmp_mount_path}"
@@ -71,8 +98,8 @@ chmod u+w "${output_nfs_path}" "${output_nfs_path}/preseed"
 
 if [[ "${desktop}" == 'cinnamon' ]]; then
     if ! WIFI_PASSWORD="$(< "${custom_installer_resources_path}/FG Reuse Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
-        echo 'FAILED TO GET WI-FI PASSWORD'
-        exit 1
+        echo -e '\nERROR: FAILED TO GET WI-FI PASSWORD\n'
+        exit 3
     fi
     readonly WIFI_PASSWORD
 
@@ -103,6 +130,6 @@ rm -rf "${output_nfs_path}/preseed/dependencies/java-jre"
 mkdir "${output_nfs_path}/preseed/dependencies/java-jre"
 tar -xzf "${output_nfs_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz" -C "${output_nfs_path}/preseed/dependencies/java-jre" --strip-components '1'
 rm -f "${output_nfs_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz"
-chmod +x "${output_nfs_path}/preseed/dependencies/xterm" "${output_nfs_path}/preseed/dependencies/stress-ng" "${output_nfs_path}/preseed/dependencies/cheese" "${output_nfs_path}/preseed/dependencies/java-jre/bin/java" "${output_nfs_path}/preseed/dependencies/java-jre/bin/keytool" "${output_nfs_path}/preseed/dependencies/java-jre/lib/jexec" "${output_nfs_path}/preseed/dependencies/java-jre/lib/jspawnhelper"
+chmod +x "${output_nfs_path}/preseed/dependencies/"{xterm,stress-ng,cheese} "${output_nfs_path}/preseed/dependencies/geekbench/geekbench"{5,_x86_64} "${output_nfs_path}/preseed/dependencies/java-jre/bin/"{java,keytool} "${output_nfs_path}/preseed/dependencies/java-jre/lib/"{jexec,jspawnhelper}
 
-echo -e "\nDONE SETTING UP MINT ${os_version} INSTALLER FOR NETBOOT\n"
+echo -e "\nDONE SETTING UP MINT ${os_version} INSTALLER FOR NETBOOT: ${source_iso_path}\n"

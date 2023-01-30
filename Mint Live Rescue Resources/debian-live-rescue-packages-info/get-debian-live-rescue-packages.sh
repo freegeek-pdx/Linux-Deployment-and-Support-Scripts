@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase,deprecate-which,quote-safe-variables,require-double-brackets
 
 #
 # MIT License
@@ -16,25 +17,22 @@
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# Final "debian-live" Commit Removing Debian Live Rescue: https://github.com/debian-live/live-images/commit/4c1911124c2ae128312ae6d256c8322d944d258f
-debian_live_rescue_package_list="$(curl -m 5 -sL 'https://raw.githubusercontent.com/debian-live/live-images/3de5ad45b9fd2d3a6874bb4757288299a3e3b01a/images/rescue/config/package-lists/rescue.list.chroot')"
-
 if_condition_line_contents=''
 packages_to_install=''
 
-IFS=$'\n'
-for this_package_list_line in ${debian_live_rescue_package_list}; do
-    if [[ "${this_package_list_line}" != '#'* ]]; then
-        if [[ -z "${if_condition_line_contents}" || " ${if_condition_line_contents} " == *' amd64 '* ]]; then
-            packages_to_install+=" ${this_package_list_line}" # Must concat with spaces instead of line breaks because some lines contain multiple space separated package names.
-        fi
-    elif [[ "${this_package_list_line}" == '#if '* ]]; then
-        if_condition_line_contents="${this_package_list_line}"
-    elif [[ "${this_package_list_line}" == '#endif' ]]; then
-        if_condition_line_contents=''
-    fi
-done
-unset IFS
+while IFS='' read -r this_package_list_line; do
+	if [[ -n "${this_package_list_line}" ]]; then
+		if [[ "${this_package_list_line}" != '#'* ]]; then
+			if [[ -z "${if_condition_line_contents}" || " ${if_condition_line_contents} " == *' amd64 '* ]]; then
+				packages_to_install+=" ${this_package_list_line}" # MUST concat with spaces instead of line breaks (or using an array) because some lines contain MULTIPLE SPACE SEPARATED package names.
+			fi
+		elif [[ "${this_package_list_line}" == '#if '* ]]; then
+			if_condition_line_contents="${this_package_list_line}"
+		elif [[ "${this_package_list_line}" == '#endif' ]]; then
+			if_condition_line_contents=''
+		fi
+	fi
+done < <(curl -m 5 -sfL 'https://raw.githubusercontent.com/debian-live/live-images/3de5ad45b9fd2d3a6874bb4757288299a3e3b01a/images/rescue/config/package-lists/rescue.list.chroot') # Final "debian-live" Commit Removing Debian Live Rescue: https://github.com/debian-live/live-images/commit/4c1911124c2ae128312ae6d256c8322d944d258f
 
 echo -e '\nUNSORTED PACKAGES:'
 echo "${packages_to_install}"
