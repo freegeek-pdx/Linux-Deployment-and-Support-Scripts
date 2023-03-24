@@ -3,7 +3,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 01/26/23
+# Last Updated: 02/08/23
 #
 # MIT License
 #
@@ -67,7 +67,7 @@ fi
 while true; do
     if nmcli device status | grep -qF ' wifi ' && ! nmcli device status | grep ' FG Reuse\| Free Geek' | grep -qF ' connected '; then
         echo -e '>>\n>\nVERIFY SCRIPT DEBUG: STARTING ATTEMPT TO CONNECT TO "FG Reuse" OR "Free Geek" WI-FI\n<\n<<'
-        
+
         # Try to connect to "FG Reuse" (which may not always be close enough) for faster Wi-Fi that can also connect to fglan (useful for "toram" network live boots that can continue after being disconnected from Ethernet).
         # If connecting to "FG Reuse" fails, connect to "Free Geek" so we can at least do a good Wi-Fi test.
         {
@@ -82,10 +82,10 @@ while true; do
             --auto-close \
             --no-cancel \
             --pulsate
-        
+
         echo -e '>>\n>\nVERIFY SCRIPT DEBUG: FINISHED ATTEMPT TO CONNECT TO "FG Reuse" OR "Free Geek" WI-FI\n<\n<<'
     fi
-    
+
     if ! timedatectl status | grep -qF 'Time zone: America/Los_Angeles'; then
         echo -e '>>\n>\nVERIFY SCRIPT DEBUG: STARTING SET TIME ZONE TO PDT\n<\n<<'
 
@@ -95,17 +95,17 @@ while true; do
 
         echo -e '>>\n>\nVERIFY SCRIPT DEBUG: FINISHED SET TIME ZONE TO PDT\n<\n<<'
     fi
-    
+
     if timedatectl status | grep -qF 'System clock synchronized: no'; then
         echo -e '>>\n>\nVERIFY SCRIPT DEBUG: STARTING WAIT FOR TIME TO SYNC\n<\n<<'
-        
+
         {
             timedatectl set-ntp false # Turn time syncing off and then
             timedatectl set-ntp true # back on to provoke faster sync attempt
-            
+
             for wait_for_time_sync_seconds in {1..30}; do # Wait up to 30 seconds for time to sync becuase download can stall if time changes in the middle of it.
                 sleep 1
-                
+
                 echo "${wait_for_time_sync_seconds}" > '/tmp/wait_for_time_sync_seconds.txt' # To get value outside of this Zenity piped sub-shell.
 
                 if timedatectl status | grep -qF 'System clock synchronized: yes'; then
@@ -120,12 +120,12 @@ while true; do
             --auto-close \
             --no-cancel \
             --pulsate
-        
+
         echo -e ">>\n>\nVERIFY SCRIPT DEBUG: FINISHED WAIT FOR TIME TO SYNC AFTER $(< '/tmp/wait_for_time_sync_seconds.txt') SECONDS\n<\n<<"
 
         rm -f '/tmp/wait_for_time_sync_seconds.txt'
     fi
-    
+
     if timedatectl status | grep -qF 'System clock synchronized: yes'; then
         echo -e '>>\n>\nVERIFY SCRIPT DEBUG: TIME IS SYNCED - SETTING SYSTEM TIME TO HWCLOCK\n<\n<<'
 
@@ -165,7 +165,7 @@ while true; do
                 if (( curl_exit_code == 0 )); then
                     unzip -jqo 'QAHelper-linux-jar.zip' 'QA_Helper.jar' # NOTE: Must specify "-q" since if the "zenity" window is *closed* "curl" could finish successfully and this "unzip" command could still be run, but the pipe will be broken and any command that tries to send to stdout will fail with a broken pipe error. This issue is avoided by not having "unzip" ever send anything to stdout.
                     rm 'QAHelper-linux-jar.zip'
-                    
+
                     if [[ -f 'QA_Helper.jar' ]]; then
                         break
                     fi
@@ -232,27 +232,29 @@ while true; do
         while true; do
             declare -a install_drives_array=()
 
-            while IFS='"' read -r _ this_drive_full_id _ this_drive_size_bytes _ this_drive_transport _ this_drive_rota _ this_drive_type; do
-                # Split lines on double quotes (") to easily extract each value out of each "lsblk" line, which will be like: NAME="/dev/sda" SIZE="1234567890" TRAN="sata" ROTA="0" TYPE="disk"
+            while IFS='"' read -r _ this_drive_full_id _ this_drive_size_bytes _ this_drive_transport _ this_drive_rota _ this_drive_type _ this_drive_model; do
+                # Split lines on double quotes (") to easily extract each value out of each "lsblk" line, which will be like: NAME="/dev/sda" SIZE="1234567890" TRAN="sata" ROTA="0" TYPE="disk" MODEL="Some Model Name"
                 # Use "_" to ignore field titles that we don't need. See more about "read" usages with IFS and skipping values at https://mywiki.wooledge.org/BashFAQ/001#Field_splitting.2C_whitespace_trimming.2C_and_other_input_processing
+                # NOTE: I don't believe the model name should ever contain double quotes ("), but if somehow it does having it as the last variable set by "read" means any of the remaining double quotes will not be split on and would be included in the value (and no other values could contain double quotes).
 
                 if [[ "${this_drive_type}" == 'disk' && -n "${this_drive_size_bytes}" && ( "${this_drive_transport}" == *'ata' || "${this_drive_transport}" == 'nvme' ) ]]; then # Only list DISKs with a SIZE that have a TRANsport type of SATA or ATA or NVMe.
-                    this_drive_id="${this_drive_full_id##*/}"
-
-                    this_drive_model="$(hdparm -I "${this_drive_full_id}" | grep -F 'Model Number:' | cut -d ':' -f 2- | tr -s '[:space:]' ' ' | sed -E 's/^ | $//g')" # Use "hdparm" for model because "lsblk" gets model from sysfs ("/sys/block/<name>/device/model") which is truncated. After "tr -s" there could still be a single leading and/or trailing space, so use "sed" to remove them.
-                    if [[ -z "${this_drive_model}" ]]; then
-                        this_drive_model="$(tr -s '[:space:]' ' ' < "/sys/block/${this_drive_id}/device/model" | sed -E 's/^ | $//g')" # After "tr -s" there could still be a single leading and/or trailing space, so use "sed" to remove them.
-                    fi
+                    this_drive_model="${this_drive_model%\"}" # If somehow the model contained quotes the trailing quote will be included by "read", so remove it.
+                    this_drive_model="${this_drive_model//_/ }" # Replace all underscores with spaces since "lsblk" version 2.34 (which shipped with Mint 20.X) seems to include them where spaces should be, but version 2.37.2 which shipped with Mint 21.X properly has spaces instead of underscore. Even though we're currently installing Mint 21.1 (or newer if I forget to update these comments), still replace them just in case it's still needed for some drive models that I haven't seen in my testing.
+                    this_drive_model="$(echo "${this_drive_model}" | tr -s '[:space:]' ' ' | sed -E 's/^ | $//g')" # Trim and squeeze any and all whitespace. (After "tr -s" there could still be a single leading and/or trailing space, so use "sed" to remove them.)
+                    # NOTE: Prior to "lsblk" (part of "util-linux") version 2.33, truncated model names would be retrieved from from sysfs ("/sys/block/<name>/device/model"), so we would manually retrieve the full model name from "hdparm".
+                    # But, starting with version 2.33, "lsblk" retrieves full model names from "udev": https://github.com/util-linux/util-linux/blob/master/Documentation/releases/v2.33-ReleaseNotes#L394
+                    # Mint 20 was the first to ship with "lsblk" version 2.34 while Mint 19.3 shipped with version 2.31.1 which still retrieved truncated drive model names.
+                    # Since we haven't installed Mint 19.3 for multiple years, just use the model name from "lsblk" since it will always be the full model for our usage.
 
                     install_drives_array+=(
                         "${this_drive_full_id}"
-                        "${this_drive_id}"
+                        "${this_drive_full_id##*/}"
                         "$(( this_drive_size_bytes / 1000 / 1000 / 1000 )) GB"
                         "${this_drive_transport^^[^e]} $( (( this_drive_rota )) && echo 'HDD' || echo 'SSD' )"
                         "${this_drive_model:-UNKNOWN Drive Model}"
                     )
                 fi
-            done < <(lsblk -abdPpo 'NAME,SIZE,TRAN,ROTA,TYPE' -x 'SIZE') # Sort "lsblk" output by size smallest to largest because we will generally want to install onto the smallest drive.
+            done < <(lsblk -abdPpo 'NAME,SIZE,TRAN,ROTA,TYPE,MODEL' -x 'SIZE') # Sort "lsblk" output by size smallest to largest because we will generally want to install onto the smallest drive.
 
             if (( "${#install_drives_array[@]}" >= 5 )); then
                 readarray -t install_drive_details_array < <(zenity \
@@ -270,17 +272,17 @@ while true; do
                     --print-column 'ALL' \
                     --separator '\n' \
                     "${install_drives_array[@]}")
-                
+
                 if [[ "${#install_drive_details_array[@]}" == 5 && "${install_drive_details_array[0]}" == '/'* ]]; then
                     debconf-set partman-auto/disk "${install_drive_details_array[0]}"
                     debconf-set grub-installer/bootdev "${install_drive_details_array[0]}"
-                    
+
                     if [[ "$(debconf-get partman-auto/disk)" == "${install_drive_details_array[0]}" && "$(debconf-get grub-installer/bootdev)" == "${install_drive_details_array[0]}" ]]; then
                         if zenity --question --title 'Confirm Installation' --no-wrap --text "Are you sure you want to <b>COMPLETELY ERASE</b> the following\ndrive and <b>INSTALL</b> <i>$(lsb_release -ds)${release_codename}${desktop_environment}</i> onto it?\n\n<tt><small><b>   ID:</b></small></tt> ${install_drive_details_array[1]}\n<tt><small><b> Size:</b></small></tt> ${install_drive_details_array[2]}\n<tt><small><b> Kind:</b></small></tt> ${install_drive_details_array[3]}\n<tt><small><b>Model:</b></small></tt> ${install_drive_details_array[4]}"; then
                             echo "--data-urlencode \"version=$(lsb_release -ds)${release_codename}${desktop_environment}\" --data-urlencode \"drive_type=${install_drive_details_array[3]}\" --data-urlencode \"base_start_time=$(date +%s)\" \\" >> '/tmp/post_install_time.sh'
-                            
+
                             killall xterm firefox 2> /dev/null # Always try to killall "xterm" and "firefox" because they could have been opened by QA Helper even when not in test mode.
-                            
+
                             exit 0
                         fi
                     elif ! zenity --question --title 'Failed to Set Installation Drive' --no-wrap --ok-label 'Try Again' --cancel-label 'Reboot' --text '<b>There was an unknown issue setting the installation drive.</b>\n\nIf this happens again, try rebooting back into this installation environment.\n\n<i>If this continues to fail, please inform your manager and Free Geek I.T.</i>'; then

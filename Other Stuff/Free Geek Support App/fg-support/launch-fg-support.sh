@@ -4,7 +4,7 @@
 #
 # Created by Pico Mitchell on 05/29/19
 # For Free Geek
-# Last Updated: 01/17/23
+# Last Updated: 01/30/23
 #
 # MIT License
 #
@@ -80,7 +80,7 @@ Terminal=false
 Type=Application
 Categories=Utility;Application;
 FG_SUPPORT_DESKTOP_FILE_EOF
-                                    
+
                                     rm -f "${HOME}/.local/share/applications/fg-support.desktop"
                                     desktop-file-install --delete-original --dir "${HOME}/.local/share/applications/" '/tmp/fg-support.desktop'
                                     chmod +x "${HOME}/.local/share/applications/fg-support.desktop"

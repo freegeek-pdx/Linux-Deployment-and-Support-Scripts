@@ -99,7 +99,7 @@ if [[ -f '/usr/share/applications/google-chrome.desktop' ]]; then
     touch "${HOME}/.config/google-chrome/First Run"
 
     # Create "~/.config/google-chrome/Default/Preferences" JSON file with "browser.has_seen_welcome_page" value set to "true" to not show the welcome page, and the
-    # "browser.default_browser_infobar_last_declined" timestamp set far in the future so the toolbar prompt to set Chrome as the default browser is never displayed. 
+    # "browser.default_browser_infobar_last_declined" timestamp set far in the future so the toolbar prompt to set Chrome as the default browser is never displayed.
     echo '{"browser":{"has_seen_welcome_page":true,"default_browser_infobar_last_declined":"99999999999999999"}}' > "${HOME}/.config/google-chrome/Default/Preferences"
 
     # Create Google Chrome launcher for OEM user which does not prompt for Keyring password: https://ubuntuforums.org/showthread.php?t=2377036&p=13708937#post13708937

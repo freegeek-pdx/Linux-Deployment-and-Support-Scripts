@@ -32,7 +32,7 @@ fi
 if [[ -d '/cdrom/preseed/dependencies/geekbench' && ! -d '/target/home/oem/.local/geekbench' ]]; then # Copy Geekbench from "dependencies" to "oem" users home in installed OS.
     mkdir -p '/target/home/oem/.local/bin'
     cp -rf '/cdrom/preseed/dependencies/geekbench' '/target/home/oem/.local/geekbench'
-    ln -s '/home/oem/.local/geekbench/geekbench5' '/target/home/oem/.local/bin/geekbench'
+    ln -s '/home/oem/.local/geekbench/geekbench6' '/target/home/oem/.local/bin/geekbench'
     chown -Rfh 1000:1000 '/target/home/oem/.local' # The whole ".local" folder will be created here, so it must be changed to be owned by the "oem" user instead of "root".
 fi
 

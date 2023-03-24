@@ -211,9 +211,18 @@ rm -rf "${cubic_project_disk_path}/preseed/dependencies/java-jre"
 mkdir "${cubic_project_disk_path}/preseed/dependencies/java-jre"
 tar -xzf "${cubic_project_disk_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz" -C "${cubic_project_disk_path}/preseed/dependencies/java-jre" --strip-components '1'
 rm -f "${cubic_project_disk_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz"
-chmod +x "${cubic_project_disk_path}/preseed/"*'.sh' "${cubic_project_disk_path}/preseed/dependencies/"{xterm,stress-ng,cheese} "${cubic_project_disk_path}/preseed/dependencies/geekbench/geekbench"{5,_x86_64} "${cubic_project_disk_path}/preseed/dependencies/java-jre/bin/"{java,keytool} "${cubic_project_disk_path}/preseed/dependencies/java-jre/lib/"{jexec,jspawnhelper}
+chmod +x "${cubic_project_disk_path}/preseed/"*'.sh' "${cubic_project_disk_path}/preseed/dependencies/"{xterm,stress-ng,cheese} "${cubic_project_disk_path}/preseed/dependencies/geekbench/geekbench"{6,_x86_64,_avx2} "${cubic_project_disk_path}/preseed/dependencies/java-jre/bin/"{java,keytool} "${cubic_project_disk_path}/preseed/dependencies/java-jre/lib/"{jexec,jspawnhelper}
 
 cp -f "${cubic_project_parent_path}/iPXE for FG/ipxe-usbboot/ipxe-usbBoot"* "${cubic_project_disk_path}/casper/"
+
+# INSTALL LATEST MEMTEST86+ WHICH ALSO SUPPORTS EFI (CUSTOM GRUB MENU INCLUDES ENTRY FOR EFI MEMTEST)
+rm -rf '/tmp/mt86plus_latest.binaries.zip' '/tmp/memtest64.'* "${cubic_project_disk_path}/boot/memtest86+.bin" "${cubic_project_disk_path}/casper/memtest"
+curl --connect-timeout 5 --progress-bar -fL "https://memtest.org$(curl -m 5 -sfL 'https://memtest.org' | awk -F '"' '$2 ~ /\.binaries\.zip$/ { print $2; exit }')" -o '/tmp/mt86plus_latest.binaries.zip'
+unzip -jo '/tmp/mt86plus_latest.binaries.zip' 'memtest64.*' -d '/tmp'
+rm -f '/tmp/mt86plus_latest.binaries.zip'
+mv -f '/tmp/memtest64.bin' "${cubic_project_disk_path}/boot/memtest86+.bin"
+cp -f "${cubic_project_disk_path}/boot/memtest86+.bin" "${cubic_project_disk_path}/casper/memtest"
+mv -f '/tmp/memtest64.efi' "${cubic_project_disk_path}/EFI/boot/memtest86+.efi"
 
 # DO NOT JUST COPY BOOT MENUS SINCE OS VERSION PLACEHOLDER NEED TO BE REPLACED WITH THE OS VERSION BEING BUILT.
 # NOTE: Starting in Mint 21, GRUB is also used in Legacy BIOS mode instead of only in UEFI mode.

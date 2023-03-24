@@ -130,6 +130,6 @@ rm -rf "${output_nfs_path}/preseed/dependencies/java-jre"
 mkdir "${output_nfs_path}/preseed/dependencies/java-jre"
 tar -xzf "${output_nfs_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz" -C "${output_nfs_path}/preseed/dependencies/java-jre" --strip-components '1'
 rm -f "${output_nfs_path}/preseed/dependencies/jlink-jre-"*"_linux-x64.tar.gz"
-chmod +x "${output_nfs_path}/preseed/dependencies/"{xterm,stress-ng,cheese} "${output_nfs_path}/preseed/dependencies/geekbench/geekbench"{5,_x86_64} "${output_nfs_path}/preseed/dependencies/java-jre/bin/"{java,keytool} "${output_nfs_path}/preseed/dependencies/java-jre/lib/"{jexec,jspawnhelper}
+chmod +x "${output_nfs_path}/preseed/dependencies/"{xterm,stress-ng,cheese} "${output_nfs_path}/preseed/dependencies/geekbench/geekbench"{6,_x86_64,_avx2} "${output_nfs_path}/preseed/dependencies/java-jre/bin/"{java,keytool} "${output_nfs_path}/preseed/dependencies/java-jre/lib/"{jexec,jspawnhelper}
 
 echo -e "\nDONE SETTING UP MINT ${os_version} INSTALLER FOR NETBOOT: ${source_iso_path}\n"

@@ -210,8 +210,8 @@ sudo chmod +x "${cubic_project_root_path}/etc/skel/.local/qa-helper/java-jre/bin
 if [[ -d "${custom_installer_resources_path}/dependencies/geekbench" ]]; then
     sudo rm -rf "${cubic_project_root_path}/usr/share/geekbench"
     sudo cp -r "${custom_installer_resources_path}/dependencies/geekbench" "${cubic_project_root_path}/usr/share/geekbench"
-    sudo chmod +x "${cubic_project_root_path}/usr/share/geekbench/geekbench"{5,_x86_64}
-    sudo ln -sf '/usr/share/geekbench/geekbench5' "${cubic_project_root_path}/usr/bin/geekbench"
+    sudo chmod +x "${cubic_project_root_path}/usr/share/geekbench/geekbench"{6,_x86_64,_avx2}
+    sudo ln -sf '/usr/share/geekbench/geekbench6' "${cubic_project_root_path}/usr/bin/geekbench"
 fi
 
 # Make all Terminals and TTYs open directly as root (if needed).
@@ -284,6 +284,15 @@ sudo rm -f "${cubic_project_root_path}/usr/share/applications/ubiquity.desktop"
 sudo rm -f "${cubic_project_root_path}/usr/bin/ubiquity"
 
 cp -f "${cubic_project_parent_path}/iPXE for FG/ipxe-usbboot/ipxe-usbBoot"* "${cubic_project_disk_path}/casper/"
+
+# INSTALL LATEST MEMTEST86+ WHICH ALSO SUPPORTS EFI (CUSTOM GRUB MENU INCLUDES ENTRY FOR EFI MEMTEST)
+rm -rf '/tmp/mt86plus_latest.binaries.zip' '/tmp/memtest64.'* "${cubic_project_disk_path}/boot/memtest86+.bin" "${cubic_project_disk_path}/casper/memtest"
+curl --connect-timeout 5 --progress-bar -fL "https://memtest.org$(curl -m 5 -sfL 'https://memtest.org' | awk -F '"' '$2 ~ /\.binaries\.zip$/ { print $2; exit }')" -o '/tmp/mt86plus_latest.binaries.zip'
+unzip -jo '/tmp/mt86plus_latest.binaries.zip' 'memtest64.*' -d '/tmp'
+rm -f '/tmp/mt86plus_latest.binaries.zip'
+mv -f '/tmp/memtest64.bin' "${cubic_project_disk_path}/boot/memtest86+.bin"
+cp -f "${cubic_project_disk_path}/boot/memtest86+.bin" "${cubic_project_disk_path}/casper/memtest"
+mv -f '/tmp/memtest64.efi' "${cubic_project_disk_path}/EFI/boot/memtest86+.efi"
 
 # DO NOT JUST COPY BOOT MENUS SINCE OS VERSION PLACEHOLDER NEED TO BE REPLACED WITH THE OS VERSION BEING BUILT.
 # NOTE: Starting in Mint 21, GRUB is also used in Legacy BIOS mode instead of only in UEFI mode.

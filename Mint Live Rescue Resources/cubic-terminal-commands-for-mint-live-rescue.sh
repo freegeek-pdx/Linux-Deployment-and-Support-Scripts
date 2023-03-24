@@ -179,8 +179,7 @@ SETUP_MLR_DESKTOP_FILE_EOF
 
     echo -e '\n\nSUCCESSFULLY COMPLETED MINT LIVE RESCUE CUBIC TERMINAL COMMANDS'
 
-    rm -f '/'*'.sh'
-    rm -f '/root/'*'.sh'
+    rm -f '/'*'.sh' '/root/'*'.sh'
 elif [[ "$(hostname)" != 'cubic' ]]; then
     echo '!!! THIS SCRIPT MUST BE RUN IN CUBIC TERMINAL !!!'
     echo '>>> YOU CAN DRAG-AND-DROP THIS SCRIPT INTO THE CUBIC TERMINAL WINDOW TO COPY AND THEN RUN IT FROM WITHIN THERE <<<'

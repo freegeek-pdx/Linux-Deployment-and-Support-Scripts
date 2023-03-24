@@ -89,8 +89,7 @@ if [[ "$(hostname)" == 'cubic' ]]; then
 
     echo -e '\n\nSUCCESSFULLY COMPLETED MINT INSTALLER CUBIC TERMINAL COMMANDS'
 
-    rm -f '/'*'.sh'
-    rm -f '/root/'*'.sh'
+    rm -f '/'*'.sh' '/root/'*'.sh'
 else
     echo '!!! THIS SCRIPT MUST BE RUN IN CUBIC TERMINAL !!!'
     echo '>>> YOU CAN DRAG-AND-DROP THIS SCRIPT INTO THE CUBIC TERMINAL WINDOW TO COPY AND THEN RUN IT FROM WITHIN THERE <<<'

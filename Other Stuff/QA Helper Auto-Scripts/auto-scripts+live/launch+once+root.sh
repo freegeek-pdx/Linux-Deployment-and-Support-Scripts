@@ -43,7 +43,7 @@ if ! grep -qF ' boot=casper ' '/proc/cmdline'; then
     if [[ "$1" != 'qa-complete' ]] && ! pgrep -f '(driver-manager|mintdrivers)' &> /dev/null; then
         echo 'LAUNCHING DRIVER MANAGER'
         nohup driver-manager &> /dev/null & disown # Pre-launch and minimize "Driver Manager" since it can take a while to load so that it's pre-loaded by the time it's activated via QA Helper.
-        
+
         apt-get install --no-install-recommends -qq xdotool &> /dev/null & # "xdotool" is required to be able to minimize the window since "wmctrl" can't do that (to keep it out of the way until it's activated via QA Helper).
 
         for (( wait_for_driver_manager_seconds = 0; wait_for_driver_manager_seconds < 30; wait_for_driver_manager_seconds ++ )); do

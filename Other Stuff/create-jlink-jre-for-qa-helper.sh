@@ -29,7 +29,7 @@ temp_folder_path='/tmp/qa-helper-jlink-jre'
 rm -rf "${temp_folder_path}"
 mkdir -p "${temp_folder_path}"
 
-jdk_download_url="$(curl -m 5 -sfL "https://jdk.java.net$(curl -m 5 -sfL 'https://jdk.java.net' | awk -F '"' '($3 == ">Ready for use: <a href=") { print $4; exit }')" 2> /dev/null | awk -F '"' '/_linux-x64_bin.tar.gz"/ { print $2; exit }')"
+jdk_download_url="$(curl -m 5 -sfw '%{redirect_url}' 'https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse')"
 jdk_archive_filename="${jdk_download_url##*/}"
 echo -e "\nDOWNLOADING \"${jdk_download_url}\"..."
 curl --connect-timeout 5 --progress-bar -fL "${jdk_download_url}" -o "${temp_folder_path}/${jdk_archive_filename}" || exit 1
@@ -40,13 +40,14 @@ rm -f "${temp_folder_path}/${jdk_archive_filename}"
 
 cd "${temp_folder_path}" || exit 1
 
-jdk_version="$(echo "${jdk_archive_filename}" | awk -F 'openjdk-|_linux' '{ print $2; exit }')"
+jdk_version="$(echo "${jdk_archive_filename}" | awk -F 'jdk_x64_linux_hotspot_|[.]tar[.]gz' '{ print $2; exit }')"
+jdk_version="${jdk_version/_/+}"
 echo -e "\nCREATING JLINK JRE ${jdk_version}..."
 "jdk-${jdk_version}/bin/jlink" --add-modules 'java.base,java.desktop,java.logging' --strip-debug --no-man-pages --no-header-files --compress '2' --output 'java-jre'
 # java.datatransfer, java.prefs, and java.xml are included automatically with java.desktop
 rm -rf "jdk-${jdk_version}"
 
-jlink_jre_filename="jlink-jre-${jdk_version}_linux-x64.tar.gz"
+jlink_jre_filename="jlink-jre-${jdk_version/+/_}_linux-x64.tar.gz"
 echo -e "\nARCHIVING JLINK JRE ${jlink_jre_filename}..."
 tar -czvf "${jlink_jre_filename}" 'java-jre'
 rm -rf 'java-jre'

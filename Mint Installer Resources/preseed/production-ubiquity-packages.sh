@@ -3,7 +3,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 01/09/23
+# Last Updated: 01/30/23
 #
 # MIT License
 #
@@ -27,7 +27,7 @@ if [[ ! -e '/home/oem/Desktop/qa-helper.desktop' ]]; then
     for install_qa_helper_attempt in {1..5}; do
         echo -e '\n\nPREPARING TO INSTALL QA HELPER\n'
         curl -m 5 -sfL 'https://apps.freegeek.org/qa-helper/download/actually-install-qa-helper.sh' | bash -s -- "${MODE}"
-        
+
         if [[ -e '/home/oem/Desktop/qa-helper.desktop' ]]; then
             break
         else
