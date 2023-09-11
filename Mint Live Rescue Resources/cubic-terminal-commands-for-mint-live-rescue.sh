@@ -104,9 +104,10 @@ if [[ "$(hostname)" == 'cubic' && -f '/usr/bin/setup-mint-live-rescue' ]]; then
     echo -e '\n\nINSTALLING HD SENTINEL\n'
     # hdsentinel: https://www.hdsentinel.com/hard_disk_sentinel_linux.php
 
-    curl --connect-timeout 5 --progress-bar -fL "$(curl -m 5 -sfL 'https://www.hdsentinel.com/hard_disk_sentinel_linux.php' 2> /dev/null | awk -F '"' '/x64.gz/ { print $2; exit }')" -o '/tmp/hdsentinel-latest-x64.gz' || exit 1
-    gunzip '/tmp/hdsentinel-latest-x64.gz' || exit 1
-    mv '/tmp/hdsentinel-latest-x64' '/usr/bin/hdsentinel' || exit 1
+    curl --connect-timeout 5 --progress-bar -fL "$(curl -m 5 -sfL 'https://www.hdsentinel.com/hard_disk_sentinel_linux.php' 2> /dev/null | awk -F '"' '/x64.zip/ { print $2; exit }')" -o '/tmp/hdsentinel-latest-x64.zip' || exit 1
+    unzip -o '/tmp/hdsentinel-latest-x64.zip' -d '/tmp' || exit 1
+    rm '/tmp/hdsentinel-latest-x64.zip' || exit 1
+    mv '/tmp/HDSentinel' '/usr/bin/hdsentinel' || exit 1
     chmod +x '/usr/bin/hdsentinel' || exit 1
 
 

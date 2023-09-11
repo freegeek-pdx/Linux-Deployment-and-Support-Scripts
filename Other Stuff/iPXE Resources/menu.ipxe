@@ -28,11 +28,11 @@ iseq ${platform} pcbios && set TFTP_OR_HTTP tftp || set TFTP_OR_HTTP http
 # NOTE: UEFI boots required "initrd=[INITRD-FILENAME]" as a kernel parameter to boot properly. This is not required (but does not cause problems) for BIOS boots.
 # NOTE: Ubuntu 19.10 (Mint 20) or newer requires "ip=dhcp" as boot arg: https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018
 
-set PRODUCTION_MINT_VERSION                     21.1
-set TESTING_MINT_VERSION                        21.1
+set PRODUCTION_MINT_VERSION                     21.2
+set TESTING_MINT_VERSION                        21.2
 
-set PRODUCTION_LIVE_RESCUE_MINT_VERSION         21.1
-set TESTING_LIVE_RESCUE_MINT_VERSION            21.1
+set PRODUCTION_LIVE_RESCUE_MINT_VERSION         21.2
+set TESTING_LIVE_RESCUE_MINT_VERSION            21.2
 
 set PRODUCTION_WINDOWS_FEATURE_VERSION          2022 Update, 22H2
 set TESTING_WINDOWS_FEATURE_VERSION             2022 Update, 22H2
@@ -47,12 +47,12 @@ set PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE  Live Rescue (Mint ${PRODUCTION_L
 set PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE       Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} CLI)
 set KEYBOARD_TESTER_TITLE                       Keyboard and Mouse Tester
 set HDS_DOS_TITLE                               Hard Disk Sentinel (DOS Edition 1.21)
-set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 10.2)
-set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 6.10)
+set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 10.6)
+set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 6.20)
 set HDT_TITLE                                   Hardware Detection Tool (0.5.2)
 set PARTEDMAGIC_TITLE                           Parted Magic (2021_02_28)
-set GPARTED_TITLE                               GParted (1.5.0-1)
-set CLONEZILLA_TITLE                            Clonezilla (3.0.3-22)
+set GPARTED_TITLE                               GParted (1.5.0-6)
+set CLONEZILLA_TITLE                            Clonezilla (3.1.0-22)
 set WINDOWS_IPDT                                Install Windows 10 Pro (${PRODUCTION_WINDOWS_FEATURE_VERSION}) with IPDT for Intel CPU Testing
 set WINDOWS_RECOVERY_TITLE                      Windows 11 Recovery Environment (${PRODUCTION_WINDOWS_FEATURE_VERSION})
 

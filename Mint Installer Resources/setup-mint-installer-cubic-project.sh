@@ -44,17 +44,21 @@ if [[ -z "${os_version}" ]]; then
     exit 2
 fi
 
-os_codename="$(curl -m 5 -sfL 'https://www.linuxmint.com/download_all.php' | xmllint --html --xpath "//td[text()='${os_version}']/following-sibling::td[1]/text()" - 2> /dev/null)"
+os_codename="$(curl -m 5 -sfL 'https://www.linuxmint.com/download_all.php' | xmllint --html --xpath "string(//td[text()='${os_version}']/following-sibling::td[1])" - 2> /dev/null)"
 
 if [[ -z "${os_codename}" ]]; then
-    >&2 echo -e "\nERROR: FAILED TO RETRIEVE CODENAME FOR OS VERSION ${os_version} (INTERNET & \"libxml2-utils\" REQUIRED)"
-    read -r
-    exit 3
+    if [[ "${version_suffix}" == '-beta' ]]; then
+        read -rp 'OS Codename for BETA: ' os_codename
+    else
+        >&2 echo -e "\nERROR: FAILED TO RETRIEVE CODENAME FOR OS VERSION ${os_version} (INTERNET & \"libxml2-utils\" REQUIRED)"
+        read -r
+        exit 3
+    fi
 fi
 
 release_notes_url="http://www.linuxmint.com/rel_${os_codename,,}_cinnamon.php"
 
-if ! curl -m 5 -sfL "${release_notes_url}" | grep -q "Mint ${os_version} \"${os_codename}\""; then
+if ! curl -m 5 -sfL "${release_notes_url}" | grep -qF "Mint ${os_version} \"${os_codename}\""; then
     >&2 echo -e "\nERROR: FAILED TO VERIFY RELEASE NOTES URL FOR CODENAME \"${os_codename}\" OF OS VERSION ${os_version} (INTERNET REQUIRED)"
     read -r
     exit 4

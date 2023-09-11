@@ -44,17 +44,21 @@ if [[ -z "${os_version}" ]]; then
     exit 2
 fi
 
-os_codename="$(curl -m 5 -sfL 'https://www.linuxmint.com/download_all.php' | xmllint --html --xpath "//td[text()='${os_version}']/following-sibling::td[1]/text()" - 2> /dev/null)"
+os_codename="$(curl -m 5 -sfL 'https://www.linuxmint.com/download_all.php' | xmllint --html --xpath "string(//td[text()='${os_version}']/following-sibling::td[1])" - 2> /dev/null)"
 
 if [[ -z "${os_codename}" ]]; then
-    >&2 echo -e "\nERROR: FAILED TO RETRIEVE CODENAME FOR OS VERSION ${os_version} (INTERNET & \"libxml2-utils\" REQUIRED)"
-    read -r
-    exit 3
+    if [[ "${version_suffix}" == '-beta' ]]; then
+        read -rp 'OS Codename for BETA: ' os_codename
+    else
+        >&2 echo -e "\nERROR: FAILED TO RETRIEVE CODENAME FOR OS VERSION ${os_version} (INTERNET & \"libxml2-utils\" REQUIRED)"
+        read -r
+        exit 3
+    fi
 fi
 
 release_notes_url="http://www.linuxmint.com/rel_${os_codename,,}_cinnamon.php"
 
-if ! curl -m 5 -sfL "${release_notes_url}" | grep -q "Mint ${os_version} \"${os_codename}\""; then
+if ! curl -m 5 -sfL "${release_notes_url}" | grep -qF "Mint ${os_version} \"${os_codename}\""; then
     >&2 echo -e "\nERROR: FAILED TO VERIFY RELEASE NOTES URL FOR CODENAME \"${os_codename}\" OF OS VERSION ${os_version} (INTERNET REQUIRED)"
     read -r
     exit 4
@@ -228,6 +232,34 @@ BASHRC_EOF
 fi
 
 sudo touch "${cubic_project_root_path}/etc/skel/.hushlogin" # Create ".hushlogin" file in home folder skeleton to not show "To run a command as administrator..." note in CLI mode since using "sudo" is no longer no necessary with the previous ".bashrc" addition. (Search ".hushlogin" within "/etc/bash.bashrc" to see why this works and what is prevents.)
+
+
+cat << 'INSTALL_OR_LAUNCH_QA_HELPER_EOF' | sudo tee "${cubic_project_root_path}/usr/local/bin/qa-helper" > /dev/null
+#!/bin/bash
+
+if [[ ! -e '/home/mint/Desktop/qa-helper.desktop' ]]; then
+    echo -e 'PREPARING TO INSTALL QA HELPER (INTERNET IS REQUIRED)\n'
+    for install_qa_helper_attempt in {1..5}; do
+        actually_install_script_contents="$(curl -m 5 -sfL 'https://apps.freegeek.org/qa-helper/download/actually-install-qa-helper.sh')"
+        if [[ "${actually_install_script_contents}" == *'qa-helper'* ]]; then
+            echo "${actually_install_script_contents}" | bash -s -- "$1"
+            break
+        else
+            echo 'FAILED TO DOWNLOAD ACTUAL QA HELPER INSTALLER (INTERNET IS REQUIRED)'
+            if (( install_qa_helper_attempt < 5 )); then
+                echo 'ATTEMPING DOWNLOAD AGAIN...'
+                sleep "${install_qa_helper_attempt}"
+            fi
+        fi
+    done
+fi
+
+if [[ -e '/home/mint/.local/bin/qa-helper' ]]; then
+    /home/mint/.local/bin/qa-helper
+fi
+INSTALL_OR_LAUNCH_QA_HELPER_EOF
+
+sudo chmod +x "${cubic_project_root_path}/usr/local/bin/qa-helper"
 
 
 cat << 'BEEP_AS_MINT_FROM_ROOT_EOF' | sudo tee "${cubic_project_root_path}/usr/local/bin/beep" > /dev/null

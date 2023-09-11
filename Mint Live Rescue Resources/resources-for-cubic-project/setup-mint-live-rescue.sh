@@ -3,7 +3,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 01/09/23
+# Last Updated: 06/23/23
 #
 # MIT License
 #
@@ -91,6 +91,9 @@ if pgrep -u mint systemd &> /dev/null && [[ "$(id -un)" == 'mint' && "${HOME}" =
         if pidof cinnamon &> /dev/null; then
             echo -e "${SETUP_MLR_PID}:\tCUSTOMIZING GSETTINGS FOR CINNAMON AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
             
+            # DISABLING NOTIFICATION SOUNDS
+            gsettings set org.cinnamon.sounds notification-enabled false
+
             # TURN OFF ALL CINNAMON SLEEP & LOCK SETTINGS
             gsettings set org.cinnamon.settings-daemon.plugins.power sleep-display-ac 0
             gsettings set org.cinnamon.settings-daemon.plugins.power sleep-display-battery 0
