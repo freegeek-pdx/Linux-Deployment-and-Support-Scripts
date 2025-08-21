@@ -3,7 +3,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 01/25/23
+# Last Updated: 07/30/25
 #
 # MIT License
 #
@@ -26,33 +26,33 @@ readonly MODE
 echo "--data-urlencode \"base_end_time=$(date +%s)\" \\" >> '/tmp/post_install_time.sh'
 
 if [[ -d '/usr/local/share/build-info' && ! -d '/target/usr/local/share/build-info' ]]; then # Copy build-info to installed OS in case QA Helper was used during pre-install.
-    cp -rf '/usr/local/share/build-info' '/target/usr/local/share/build-info'
+	cp -rf '/usr/local/share/build-info' '/target/usr/local/share/build-info'
 fi
 
 if [[ -d '/cdrom/preseed/dependencies/geekbench' && ! -d '/target/home/oem/.local/geekbench' ]]; then # Copy Geekbench from "dependencies" to "oem" users home in installed OS.
-    mkdir -p '/target/home/oem/.local/bin'
-    cp -rf '/cdrom/preseed/dependencies/geekbench' '/target/home/oem/.local/geekbench'
-    ln -s '/home/oem/.local/geekbench/geekbench6' '/target/home/oem/.local/bin/geekbench'
-    chown -Rfh 1000:1000 '/target/home/oem/.local' # The whole ".local" folder will be created here, so it must be changed to be owned by the "oem" user instead of "root".
+	mkdir -p '/target/home/oem/.local/bin'
+	cp -rf '/cdrom/preseed/dependencies/geekbench' '/target/home/oem/.local/geekbench'
+	ln -s '/home/oem/.local/geekbench/geekbench6' '/target/home/oem/.local/bin/geekbench'
+	chown -Rfh 1000:1000 '/target/home/oem/.local' # The whole ".local" folder will be created here, so it must be changed to be owned by the "oem" user instead of "root".
 fi
 
 if [[ -e '/tmp/detailed_hostname.txt' ]]; then
-    detailed_hostname="$(< '/tmp/detailed_hostname.txt')"
-    echo "${detailed_hostname}" > '/target/etc/hostname'
-    sed -i "2s/.*/127.0.0.1\t${detailed_hostname}/" '/target/etc/hosts'
-    chroot '/target' hostname -F '/target/etc/hostname'
+	detailed_hostname="$(< '/tmp/detailed_hostname.txt')"
+	echo "${detailed_hostname}" > '/target/etc/hostname'
+	sed -i "2s/.*/127.0.0.1\t${detailed_hostname}/" '/target/etc/hosts'
+	chroot '/target' hostname -F '/target/etc/hostname'
 fi
 
 hostname -F '/target/etc/hostname' # Sync hostnames to silence "sudo unable to resolve host mint" warnings (when sudo is used in QA Helper installer)
 
 for this_mount_point in 'dev' 'dev/pts' 'sys' 'proc' 'run'; do
-    # Bind mount /dev /sys /proc for chroot ubuntu-drivers and microcode installations, etc.
-    # Bind mounting /run is critical for chroot downloads to work by getting the proper resolv.conf info.
-    mount --bind "/${this_mount_point}" "/target/${this_mount_point}"
+	# Bind mount /dev /sys /proc for chroot ubuntu-drivers and microcode installations, etc.
+	# Bind mounting /run is critical for chroot downloads to work by getting the proper resolv.conf info.
+	mount --bind "/${this_mount_point}" "/target/${this_mount_point}"
 done
 
 if [[ "${MODE}" == 'testing' ]]; then
-    LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -geometry 80x25+0+0 -sb -sl 999999 -e 'echo -e "DEBUG - CLOSE ME TO INSTALL PACKAGES, SYSTEM UPDATES, AND DRIVERS\n\n"; bash'
+	LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -geometry 80x25+0+0 -sb -sl 999999 -rightbar -e 'echo -e "DEBUG - CLOSE ME TO INSTALL PACKAGES, UPDATES, AND DRIVERS\n\n"; bash'
 fi
 
 cp -f "/cdrom/preseed/${MODE}-ubiquity-packages.sh" "/target/${MODE}-ubiquity-packages.sh"
@@ -65,35 +65,35 @@ readonly REBOOT_TIMEOUT
 desktop_environment="$(awk -F '=' '($1 == "Name") { print $2; exit }' '/target/usr/share/xsessions/'*)" # Can't get desktop environment from DESKTOP_SESSION or XDG_CURRENT_DESKTOP in pre-install environment.
 desktop_environment="${desktop_environment%% (*)}"
 if [[ -n "$desktop_environment" ]]; then
-    desktop_environment=" (${desktop_environment})"
+	desktop_environment=" (${desktop_environment})"
 fi
 
-release_codename="$(lsb_release -cs)"
+release_codename="$(lsb_release -cs 2> /dev/null)"
 if [[ -n "$release_codename" ]]; then
-    release_codename=" ${release_codename^}"
+	release_codename=" ${release_codename^}"
 fi
 
 while [[ -e "/target/${MODE}-ubiquity-packages.sh" ]]; do
-    LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -fullscreen -title 'Installing Packages, System Updates, and Drivers' -sb -sl 999999 -e "echo -e '\nINSTALLING PACKAGES, SYSTEM UPDATES, AND DRIVERS\n'; chroot '/target' \"/${MODE}-ubiquity-packages.sh\"; rm -f \"/target/${MODE}-ubiquity-packages.sh\"; echo \"--data-urlencode \\\"updates_end_time=\$(date +%s)\\\" \\\\\" >> '/tmp/post_install_time.sh'; echo -e '\n\nDONE INSTALLING PACKAGES, SYSTEM UPDATES, AND DRIVERS\n\n\n\n\n\n\n\n\n\nSUCCESSFULLY INSTALLED $(lsb_release -ds)${release_codename}${desktop_environment}\n\nTHIS COMPUTER WILL REBOOT IN 30 SECONDS\n\n\n\n\n\n\n\n\n\nOR PRESS ENTER TO REBOOT NOW'; read ${REBOOT_TIMEOUT} line"
+	LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -fullscreen -title 'Installing Packages, Updates, and Drivers' -sb -sl 999999 -rightbar -e "echo -e '\nINSTALLING PACKAGES, UPDATES, AND DRIVERS\n'; chroot '/target' \"/${MODE}-ubiquity-packages.sh\"; rm -f \"/target/${MODE}-ubiquity-packages.sh\"; echo \"--data-urlencode \\\"updates_end_time=\$(date +%s)\\\" \\\\\" >> '/tmp/post_install_time.sh'; echo -e '\n\nDONE INSTALLING PACKAGES, UPDATES, AND DRIVERS\n\n\n\n\n\n\n\n\n\nSUCCESSFULLY INSTALLED $(lsb_release -ds 2> /dev/null)${release_codename}${desktop_environment}\n\nTHIS COMPUTER WILL REBOOT IN 30 SECONDS\n\n\n\n\n\n\n\n\n\nOR PRESS ENTER TO REBOOT NOW'; read ${REBOOT_TIMEOUT} line"
 
-    if [[ -e "/target/${MODE}-ubiquity-packages.sh" ]]; then
-        # Fix any problems if xterm was closed mid-installation.
-        if [[ "${MODE}" == 'testing' ]]; then
-            LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -fullscreen -title 'Fixing DPKG and APT Before Installing Again' -sb -sl 999999 -e "echo -e '\nFIXING DPKG AND APT BEFORE RE-INSTALLING PACKAGES, SYSTEM UPDATES, AND DRIVERS\n'; killall dpkg 2> /dev/null && echo -e '\n\nKILLED DPKG' || echo -e '\n\nDPKG NOT RUNNING'; killall apt 2> /dev/null && echo -e '\n\nKILLED APT' || echo -e '\n\nAPT NOT RUNNING'; killall apt-get 2> /dev/null && echo -e '\n\nKILLED APT-GET' || echo -e '\n\nAPT-GET NOT RUNNING'; echo -e '\n\nWAITING 5 SECONDS BEFORE REPAIRING DPKG AND APT...'; sleep 5; echo -e '\n\nREPAIRING DPKG:\n'; chroot '/target' dpkg --configure -a; echo -e '\n\nREPAIRING APT:\n'; chroot '/target' apt-get -f install -y; echo -e '\n\nDONE FIXING DPKG AND APT BEFORE RE-INSTALLING PACKAGES, SYSTEM UPDATES, AND DRIVERS'; read -t 3 line"
-        else
-            killall dpkg 2> /dev/null
-            killall apt 2> /dev/null
-            killall apt-get 2> /dev/null
-            sleep 5 # Seems to be necessary to wait a bit after killing processes and before reparing dpkg and apt-get
-            chroot '/target' dpkg --configure -a
-            chroot '/target' apt-get -f install -y
-        fi
-    fi
+	if [[ -e "/target/${MODE}-ubiquity-packages.sh" ]]; then
+		# Fix any problems if xterm was closed mid-installation.
+		if [[ "${MODE}" == 'testing' ]]; then
+			LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -fullscreen -title 'Fixing DPKG and APT Before Installing Again' -sb -sl 999999 -rightbar -e "echo -e '\nFIXING DPKG AND APT BEFORE RE-INSTALLING PACKAGES, UPDATES, AND DRIVERS\n'; killall dpkg 2> /dev/null && echo -e '\n\nKILLED DPKG' || echo -e '\n\nDPKG NOT RUNNING'; killall apt 2> /dev/null && echo -e '\n\nKILLED APT' || echo -e '\n\nAPT NOT RUNNING'; killall apt-get 2> /dev/null && echo -e '\n\nKILLED APT-GET' || echo -e '\n\nAPT-GET NOT RUNNING'; echo -e '\n\nWAITING 5 SECONDS BEFORE REPAIRING DPKG AND APT...'; sleep 5; echo -e '\n\nREPAIRING DPKG:\n'; chroot '/target' dpkg --configure -a; echo -e '\n\nREPAIRING APT:\n'; chroot '/target' apt-get -f install -y; echo -e '\n\nDONE FIXING DPKG AND APT BEFORE RE-INSTALLING PACKAGES, UPDATES, AND DRIVERS'; read -t 3 line"
+		else
+			killall dpkg 2> /dev/null
+			killall apt 2> /dev/null
+			killall apt-get 2> /dev/null
+			sleep 5 # Seems to be necessary to wait a bit after killing processes and before reparing dpkg and apt-get
+			chroot '/target' dpkg --configure -a
+			chroot '/target' apt-get -f install -y
+		fi
+	fi
 done
 
 chmod +x '/tmp/post_install_time.sh'
 '/tmp/post_install_time.sh' # Run this generated script.
 
 if [[ "${MODE}" == 'testing' ]]; then
-    LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -geometry 80x25+0+0 -sb -sl 999999 -e 'echo -e "DEBUG - CLOSE ME TO REBOOT\n\n"; bash'
+	LD_LIBRARY_PATH='/cdrom/preseed/dependencies/' '/cdrom/preseed/dependencies/xterm' -geometry 80x25+0+0 -sb -sl 999999 -rightbar -e 'echo -e "DEBUG - CLOSE ME TO REBOOT\n\n"; bash'
 fi

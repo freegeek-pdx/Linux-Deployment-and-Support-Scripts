@@ -3,7 +3,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 01/09/23
+# Last Updated: 05/03/24
 #
 # MIT License
 #
@@ -21,20 +21,20 @@
 #
 
 if pgrep -u mint systemd &> /dev/null && [[ ( "${TERM}" == 'linux' || "${TERM}" == 'xterm-256color' ) && "$(id -un)" == 'mint' && "${HOME}" == '/home/mint' ]]; then # Only run if fully logged in as "mint" user with an interactive terminal by checking that TERM is "linux" (on 20.2) or "xterm-256color" (on 20.3 and 21).
-    this_tty="TTY$(fgconsole)"
+	this_tty="TTY$(fgconsole)"
 
-    echo -e "\nPROFILE FOR ${this_tty}: SETTERM AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
+	echo -e "\nPROFILE FOR ${this_tty}: SETTERM AT $(date)" | sudo tee -a '/setup-mint-live-toolkit.log' > /dev/null # DEBUG
 
-    setterm -blank 0 -powersave off -foreground cyan 2> /dev/null
+	setterm -blank 0 -powersave off -foreground cyan 2> /dev/null
 
-    if grep -qF ' 3 ' '/proc/cmdline' && [[ "${this_tty}" == 'TTY1' ]]; then
-        echo "PROFILE FOR ${this_tty}: CALLING SETUP MINT LIVE RESCUE BECAUSE IS TTY1 AND BOOTED INTO CLI MODE AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
+	if grep -qF ' 3 ' '/proc/cmdline' && [[ "${this_tty}" == 'TTY1' ]]; then
+		echo "PROFILE FOR ${this_tty}: CALLING SETUP MINT LIVE TOOLKIT BECAUSE IS TTY1 AND BOOTED INTO CLI MODE AT $(date)" | sudo tee -a '/setup-mint-live-toolkit.log' > /dev/null # DEBUG
 
-        # Don't need to call /usr/bin/setup-mint-live-rescue when not booted into CLI Mode (Runlevel 3) because it will get called by /etc/xdg/autostart/setup-mint-live-rescue.desktop when Cinnamon is started.
-        # And, only need to call /usr/bin/setup-mint-live-rescue for TTY1 because the settings apply to all TTYs.
+		# Don't need to call /usr/bin/setup-mint-live-toolkit when not booted into CLI Mode (Runlevel 3) because it will get called by /etc/xdg/autostart/setup-mint-live-toolkit.desktop when Cinnamon is started.
+		# And, only need to call /usr/bin/setup-mint-live-toolkit for TTY1 because the settings apply to all TTYs.
 
-        '/usr/bin/setup-mint-live-rescue' & disown
-    else
-        echo "PROFILE FOR ${this_tty}: DID NOT CALL SETUP MINT LIVE RESCUE BECAUSE NOT TTY1 OR NOT BOOTED INTO CLI MODE AT $(date)" | sudo tee -a '/setup-mint-live-rescue.log' > /dev/null # DEBUG
-    fi
+		'/usr/bin/setup-mint-live-toolkit' & disown
+	else
+		echo "PROFILE FOR ${this_tty}: DID NOT CALL SETUP MINT LIVE TOOLKIT BECAUSE NOT TTY1 OR NOT BOOTED INTO CLI MODE AT $(date)" | sudo tee -a '/setup-mint-live-toolkit.log' > /dev/null # DEBUG
+	fi
 fi

@@ -77,6 +77,8 @@
 	# Ubuntu 20.04 (Mint 20) runs fsck on every live boot, added "fsck.mode=skip" so that loading over the network doesn't take a long time checking filesystem.squashfs and the rest of the files: https://askubuntu.com/questions/1237389/ubuntu-20-04-every-boot-makes-a-very-long-filesystem-check
 	$ipxe_boot_command = "boot $tftp_or_http://$pxe_server/$os_folder_name/vmlinuz initrd=$initrd boot=casper netboot=nfs ip=dhcp nfsroot=$pxe_server:/srv/nfs/$os_folder_name fsck.mode=skip nosplash";
 
+	if (($distro == 'mint') && (version_compare($version, '21.3') >= 0)) $ipxe_boot_command .= ' username=mint hostname=mint'; # Starting in Mint 21.3, the "username" and "hostname" must be set to "mint" to match previous behavior or else both will just be "linux".
+
 	if ($_POST['preseed']) {
 		$ipxe_boot_command .= ' file=/cdrom/preseed/' . $_POST['preseed'] . '.seed';
 		if (strpos($_POST['preseed'], 'ubiquity') !== false) $ipxe_boot_command .= ' automatic-ubiquity';
@@ -84,7 +86,17 @@
 
 	if ($_POST['extra_args']) $ipxe_boot_command .= ' ' . $_POST['extra_args'];
 
-	if (version_compare($version, '20') >= 0) {
+	if (strpos(($ipxe_boot_command . ' '), ' toram ') !== false) {
+?>
+
+echo
+<?=$ipxe_initrd_command?>
+
+echo
+<?=$ipxe_boot_command?> --
+
+<?php
+	} elseif (version_compare($version, '20') >= 0) {
 ?>
 
 menu Load OS over Network or into RAM?

@@ -88,8 +88,8 @@ gsettings set org.cinnamon.desktop.interface clock-show-date true
 
 echo 'SETTING SCREENSAVER CLOCK FORMAT'
 gsettings set org.cinnamon.desktop.screensaver use-custom-format true
-gsettings set org.cinnamon.desktop.screensaver time-format '%l:%M:%S %p'
-gsettings set org.cinnamon.desktop.screensaver date-format '    %A %B %e, %Y'
+gsettings set org.cinnamon.desktop.screensaver time-format '%-I:%M:%S %p'
+gsettings set org.cinnamon.desktop.screensaver date-format '    %A %B %-d, %Y'
 
 
 if [[ -f '/usr/share/applications/google-chrome.desktop' ]]; then
@@ -135,7 +135,3 @@ if [[ ! -d "${HOME}/Pictures/Free Geek Promo Pics" ]]; then
 	unzip -qo '/tmp/qa-helper_free-geek_promo-pics.zip' -x '__MACOSX*' '.*' '*/.*' -d "${HOME}/Pictures"
 	rm -f '/tmp/qa-helper_free-geek_promo-pics.zip'
 fi
-
-
-echo 'CONNECTING TO FREE GEEK WI-FI'
-nmcli device wifi connect 'Free Geek'

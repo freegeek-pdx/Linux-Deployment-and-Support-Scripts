@@ -28,42 +28,49 @@ iseq ${platform} pcbios && set TFTP_OR_HTTP tftp || set TFTP_OR_HTTP http
 # NOTE: UEFI boots required "initrd=[INITRD-FILENAME]" as a kernel parameter to boot properly. This is not required (but does not cause problems) for BIOS boots.
 # NOTE: Ubuntu 19.10 (Mint 20) or newer requires "ip=dhcp" as boot arg: https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018
 
-set PRODUCTION_MINT_VERSION                     21.2
-set TESTING_MINT_VERSION                        21.2
+set PRODUCTION_MINT_VERSION                     22.1
+set TESTING_MINT_VERSION                        22.1
 
-set PRODUCTION_LIVE_RESCUE_MINT_VERSION         21.2
-set TESTING_LIVE_RESCUE_MINT_VERSION            21.2
+set PRODUCTION_LIVE_TOOLKIT_MINT_VERSION        22.1
+set TESTING_LIVE_TOOLKIT_MINT_VERSION           22.1
 
-set PRODUCTION_WINDOWS_FEATURE_VERSION          2022 Update, 22H2
-set TESTING_WINDOWS_FEATURE_VERSION             2022 Update, 22H2
+set PRODUCTION_WINDOWS_10_FEATURE_VERSION       22H2
+set PRODUCTION_WINDOWS_11_FEATURE_VERSION       24H2
+set TESTING_WINDOWS_11_FEATURE_VERSION          24H2
 
-set PRODUCTION_WINPE_IMAGE_NAME                 WinRE-11-22H2
-set TESTING_WINPE_IMAGE_NAME                    WinRE-11-22H2
+set PRODUCTION_WINPE_IMAGE_NAME                 WinRE-11-${PRODUCTION_WINDOWS_11_FEATURE_VERSION}
+set TESTING_WINPE_IMAGE_NAME                    WinRE-11-${TESTING_WINDOWS_11_FEATURE_VERSION}
 
 set PRODUCTION_INSTALL_MINT_CINNAMON_TITLE      Install Linux Mint ${PRODUCTION_MINT_VERSION} (Cinnamon)
-set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows 10 Pro (${PRODUCTION_WINDOWS_FEATURE_VERSION})
+set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows 10 (${PRODUCTION_WINDOWS_10_FEATURE_VERSION}) or Windows 11 (${PRODUCTION_WINDOWS_11_FEATURE_VERSION})
 
-set PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE  Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} Cinnamon)
-set PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE       Live Rescue (Mint ${PRODUCTION_LIVE_RESCUE_MINT_VERSION} CLI)
+set PRODUCTION_FG_ERASER_TITLE                  FG Eraser
+set PRODUCTION_FG_ERASER_GUI_TITLE              ${PRODUCTION_FG_ERASER_TITLE} (GUI Mode)
+set PRODUCTION_FG_ERASER_AUTO_ERASE_TITLE       ${PRODUCTION_FG_ERASER_TITLE} (Auto Erase Mode)
+set PRODUCTION_FG_ERASER_AUTO_VERIFY_TITLE      ${PRODUCTION_FG_ERASER_TITLE} (Auto Verify Mode)
+
+set PRODUCTION_LIVE_TOOLKIT_MINT_CINNAMON_TITLE Live Toolkit (Mint ${PRODUCTION_LIVE_TOOLKIT_MINT_VERSION} Cinnamon)
+set PRODUCTION_LIVE_TOOLKIT_MINT_CLI_TITLE      Live Toolkit (Mint ${PRODUCTION_LIVE_TOOLKIT_MINT_VERSION} CLI)
 set KEYBOARD_TESTER_TITLE                       Keyboard and Mouse Tester
 set HDS_DOS_TITLE                               Hard Disk Sentinel (DOS Edition 1.21)
-set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 10.6)
-set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 6.20)
+set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 11.4)
+set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 7.00)
 set HDT_TITLE                                   Hardware Detection Tool (0.5.2)
 set PARTEDMAGIC_TITLE                           Parted Magic (2021_02_28)
-set GPARTED_TITLE                               GParted (1.5.0-6)
-set CLONEZILLA_TITLE                            Clonezilla (3.1.0-22)
-set WINDOWS_IPDT                                Install Windows 10 Pro (${PRODUCTION_WINDOWS_FEATURE_VERSION}) with IPDT for Intel CPU Testing
-set WINDOWS_RECOVERY_TITLE                      Windows 11 Recovery Environment (${PRODUCTION_WINDOWS_FEATURE_VERSION})
+set GPARTED_TITLE                               GParted (1.6.0-10)
+set CLONEZILLA_TITLE                            Clonezilla (3.2.0-5)
+set SHREDOS_TITLE                               ShredOS/nwipe (2024.02.2_26.0_x86-64_0.37)
+set WINDOWS_IPDT                                Install Windows with IPDT for Intel CPU Testing
+set WINDOWS_RECOVERY_TITLE                      Windows 11 Recovery Environment (${PRODUCTION_WINDOWS_11_FEATURE_VERSION})
 
 set BIOS_ONLY_TOOLS_NOTE                        * Starred tools are not compatible with UEFI. Reboot in Legacy BIOS mode to use them.
 
 set IT_TESTING_SUBMENU_PASSWORD                 password
 set TESTING_INSTALL_MINT_CINNAMON_TITLE         TEST MODE: Install Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
 set TESTING_LIVE_MINT_CINNAMON_TITLE            TEST MODE: Live Boot Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
-set TESTING_INSTALL_WINDOWS_TITLE               TEST MODE: Install Windows 10 or 11 Pro (${TESTING_WINDOWS_FEATURE_VERSION})
-set TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE     TEST MODE: Live Rescue (Mint ${TESTING_LIVE_RESCUE_MINT_VERSION} Cinnamon)
-set TESTING_LIVE_RESCUE_MINT_CLI_TITLE          TEST MODE: Live Rescue (Mint ${TESTING_LIVE_RESCUE_MINT_VERSION} CLI)
+set TESTING_INSTALL_WINDOWS_TITLE               TEST MODE: Install Windows 10 (${PRODUCTION_WINDOWS_10_FEATURE_VERSION}) or Windows 11 (${TESTING_WINDOWS_11_FEATURE_VERSION})
+set TESTING_LIVE_TOOLKIT_MINT_CINNAMON_TITLE    TEST MODE: Live Toolkit (Mint ${TESTING_LIVE_TOOLKIT_MINT_VERSION} Cinnamon)
+set TESTING_LIVE_TOOLKIT_MINT_CLI_TITLE         TEST MODE: Live Toolkit (Mint ${TESTING_LIVE_TOOLKIT_MINT_VERSION} CLI)
 
 set PXE_SERVER 192.168.2.44
 
@@ -80,11 +87,39 @@ cpair --foreground 7 --background 5 4 || # Editable Text (login)
 console --x 1024 --y 768 ||
 console --left 100 --right 100 --top 35 --picture ${TFTP_OR_HTTP}://${PXE_SERVER}/boot/ipxe-freegeek-background-${platform}.png || console --left 100 --right 100 --top 35 --picture ${TFTP_OR_HTTP}://${PXE_SERVER}/boot/ipxe-freegeek-background-shell.png ||
 
-# Send RAM Testing Stations in Hardware Testing straight to memtest:
-iseq ${mac} 4c:72:b9:4e:89:5b && goto straight-to-memtest ||
-iseq ${mac} 40:8d:5c:1e:f4:92 && goto straight-to-memtest ||
-iseq ${mac} ac:1f:6b:14:74:d8 && goto straight-to-memtest ||
-iseq ${mac} 00:25:90:da:4c:ae && goto straight-to-memtest ||
+# Boot RAM Testing Stations in Hardware Testing directly to memtest:
+iseq ${mac} 4c:72:b9:4e:89:5b && goto direct-to-memtest ||
+iseq ${mac} 40:8d:5c:1e:f4:92 && goto direct-to-memtest ||
+iseq ${mac} ac:1f:6b:14:74:d8 && goto direct-to-memtest ||
+iseq ${mac} 00:25:90:da:4c:ae && goto direct-to-memtest ||
+
+# Boot SATA/SAS 15-bay Erasure Stations in SDA directly to FG Erase (GUI Mode)
+iseq ${mac} ac:22:0b:26:8d:9d && goto direct-to-fg-eraser-gui ||
+iseq ${mac} 2c:4d:54:d8:aa:f7 && goto direct-to-fg-eraser-gui ||
+
+# Boot M.2 NUC Erasure Stations in SDA directly to FG Eraser (Auto Erase Mode):
+iseq ${mac} 1c:69:7a:00:60:c9 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ad:ef:95 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:a9:30:41 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:a6:ca:cc && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 1c:69:7a:0a:d2:1f && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ad:d5:22 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ae:30:7b && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 1c:69:7a:00:1d:24 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:a7:54:f8 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ad:b6:13 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 1c:69:7a:00:76:3a && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ad:ef:87 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:a7:54:c7 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ad:cc:5a && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ad:ed:a9 && goto direct-to-fg-eraser-auto-erase ||
+iseq ${mac} 94:c6:91:ad:bb:65 && goto direct-to-fg-eraser-auto-erase ||
+
+# Boot M.2 NUC Erasure Stations in SDA directly to FG Eraser (Auto Verify Mode):
+iseq ${mac} 94:c6:91:a2:9f:a5 && goto direct-to-fg-eraser-auto-verify ||
+iseq ${mac} 94:c6:91:ad:b5:61 && goto direct-to-fg-eraser-auto-verify ||
+iseq ${mac} 94:c6:91:a0:b1:92 && goto direct-to-fg-eraser-auto-verify ||
+iseq ${mac} 94:c6:91:a7:10:61 && goto direct-to-fg-eraser-auto-verify ||
 
 
 ### MAIN MENU ###
@@ -105,16 +140,19 @@ iseq ${platform} pcbios && item --gap               PLEASE NOTE: If you are goin
 iseq ${platform} pcbios && item --gap               REBOOT into BIOS Setup and switch to using UEFI mode instead of Legacy BIOS mode. ||
 item --gap
 item --gap
-item --key M production-install-mint-cinnamon       [M] ${PRODUCTION_INSTALL_MINT_CINNAMON_TITLE}
-item --gap
-item --key W production-install-windows             [W] ${PRODUCTION_INSTALL_WINDOWS_TITLE}
+item --gap                                          NOTICE: Use USB Installer to Install Linux Mint or Windows
 item --gap
 item --gap
+item --key R reboot-menu                            [R] Reboot
+item --key S shutdown-menu                          [S] Shut Down
+#item --key M production-install-mint-cinnamon       [M] ${PRODUCTION_INSTALL_MINT_CINNAMON_TITLE}
+#item --gap
+#item --key W production-install-windows             [W] ${PRODUCTION_INSTALL_WINDOWS_TITLE}
+item --gap
+item --gap
+item --key F fg-eraser-submenu                      [F] ${PRODUCTION_FG_ERASER_TITLE} >
 item --key D diagnostic-tools-submenu               [D] Diagnostic Tools >
 item --key T it-testing-submenu                     [T] I.T. Testing >
-item --gap
-item --key S shutdown-menu                          [S] Shut Down
-item --key R reboot-menu                            [R] Reboot
 item --gap
 item --gap
 item --gap                                          MENU SHORTCUTS: Shift Key + [ Letter in Square Brackets ]
@@ -216,17 +254,97 @@ echo
 goto main-menu
 
 
-### STRAIGHT TO MEMTEST MENU ###
+### DIRECT TO MEMTEST MENU ###
 
-:straight-to-memtest
+:direct-to-memtest
 iseq ${platform} efi && menu Would you like to load ${MEMTEST86_TITLE}? || menu Would you like to load ${MEMTEST86PLUS_TITLE}?
 item --gap
-item --gap This MAC (${mac}) is configured to load straight into RAM Stress Test.
+item --gap This MAC (${mac}) is configured to load RAM Stress Test.
 item --gap
 item --gap
 iseq ${platform} efi && item --key Y memtest86 [Y] Yes, Load ${MEMTEST86_TITLE} || item --key Y memtest86plus [Y] Yes, Load ${MEMTEST86PLUS_TITLE}
 item --key N main-menu                         [N] No, Go to Main Menu
-choose --timeout 2000 memtest-menu-selection && goto ${memtest-menu-selection} || goto error
+choose --timeout 2000 direct-to-memtest-menu-selection && goto ${direct-to-memtest-menu-selection} || goto error
+
+
+### DIRECT TO FG ERASER MENU ###
+
+:direct-to-fg-eraser-gui
+menu Would you like to load ${PRODUCTION_FG_ERASER_GUI_TITLE}?
+item --gap
+item --gap This MAC (${mac}) is configured to load ${PRODUCTION_FG_ERASER_GUI_TITLE}.
+item --gap
+item --gap
+item --key Y production-fg-eraser-gui [Y] Yes, Load ${PRODUCTION_FG_ERASER_GUI_TITLE}
+item --key N main-menu                [N] No, Go to Main Menu
+choose --timeout 2000 direct-to-fg-eraser-gui-menu-selection && goto ${direct-to-fg-eraser-gui-menu-selection} || goto error
+
+
+### DIRECT TO FG ERASER AUTO ERASE MENU ###
+
+:direct-to-fg-eraser-auto-erase
+menu Would you like to load ${PRODUCTION_FG_ERASER_AUTO_ERASE_TITLE}?
+item --gap
+item --gap This MAC (${mac}) is configured to load ${PRODUCTION_FG_ERASER_AUTO_ERASE_TITLE}.
+item --gap
+item --gap
+item --key Y production-fg-eraser-auto-erase     [Y] Yes, Load ${PRODUCTION_FG_ERASER_AUTO_ERASE_TITLE}
+item --key N main-menu                           [N] No, Go to Main Menu
+choose --timeout 2000 direct-to-fg-eraser-auto-erase-menu-selection && goto ${direct-to-fg-eraser-auto-erase-menu-selection} || goto error
+
+
+### DIRECT TO FG ERASER AUTO VERIFY MENU ###
+
+:direct-to-fg-eraser-auto-verify
+menu Would you like to load ${PRODUCTION_FG_ERASER_AUTO_VERIFY_TITLE}?
+item --gap
+item --gap This MAC (${mac}) is configured to load ${PRODUCTION_FG_ERASER_AUTO_VERIFY_TITLE}.
+item --gap
+item --gap
+item --key Y production-fg-eraser-auto-verify     [Y] Yes, Load ${PRODUCTION_FG_ERASER_AUTO_VERIFY_TITLE}
+item --key N main-menu                            [N] No, Go to Main Menu
+choose --timeout 2000 direct-to-fg-eraser-auto-verify-menu-selection && goto ${direct-to-fg-eraser-auto-verify-menu-selection} || goto error
+
+
+### FG ERASER SUBMENU ###
+
+:fg-eraser-submenu
+menu ${PRODUCTION_FG_ERASER_TITLE}
+item --gap
+item --key < main-menu                             < Return to Main Menu
+item --gap
+item --gap
+item --key F production-fg-eraser-gui             [F] ${PRODUCTION_FG_ERASER_GUI_TITLE}
+item --key E production-fg-eraser-auto-erase      [E] ${PRODUCTION_FG_ERASER_AUTO_ERASE_TITLE}
+item --key V production-fg-eraser-auto-verify     [V] ${PRODUCTION_FG_ERASER_AUTO_VERIFY_TITLE}
+choose --default production-fg-eraser-gui fg-eraser-submenu-selection && goto ${fg-eraser-submenu-selection} || goto error
+
+:production-fg-eraser-gui
+echo
+echo ${PRODUCTION_FG_ERASER_GUI_TITLE}
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/fg-eraser-live/initrd.xz || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/fg-eraser-live/vmlinuz initrd=initrd.xz boot=live components nosplash fg-eraser fetch=http://${PXE_SERVER}/fg-eraser-live/filesystem.squashfs ||
+goto error
+
+:production-fg-eraser-auto-erase
+echo
+echo ${PRODUCTION_FG_ERASER_AUTO_ERASE_TITLE}
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/fg-eraser-live/initrd.xz || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/fg-eraser-live/vmlinuz initrd=initrd.xz boot=live components nosplash fg-eraser-auto-erase fetch=http://${PXE_SERVER}/fg-eraser-live/filesystem.squashfs ||
+goto error
+
+:production-fg-eraser-auto-verify
+echo
+echo ${PRODUCTION_FG_ERASER_AUTO_VERIFY_TITLE}
+echo
+initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/fg-eraser-live/initrd.xz || goto error
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/fg-eraser-live/vmlinuz initrd=initrd.xz boot=live components nosplash fg-eraser-auto-verify fetch=http://${PXE_SERVER}/fg-eraser-live/filesystem.squashfs ||
+goto error
 
 
 ### DIAGNOSTIC TOOLS SUBMENU ###
@@ -237,8 +355,8 @@ item --gap
 item --key < main-menu                                          < Return to Main Menu
 item --gap
 item --gap
-item --key L production-live-rescue-mint-cinnamon               [L] ${PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE}
-item --key T production-live-rescue-mint-cli                    [T] ${PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE}
+item --key L production-live-toolkit-mint-cinnamon              [L] ${PRODUCTION_LIVE_TOOLKIT_MINT_CINNAMON_TITLE}
+item --key T production-live-toolkit-mint-cli                   [T] ${PRODUCTION_LIVE_TOOLKIT_MINT_CLI_TITLE}
 item --gap
 item --key K keyboard-tester                                    [K] ${KEYBOARD_TESTER_TITLE}
 iseq ${platform} pcbios && item --key D hds-dos                 [D] ${HDS_DOS_TITLE}                    || item --gap [D] ${HDS_DOS_TITLE} *
@@ -249,6 +367,7 @@ iseq ${platform} pcbios && item --key H hdt                     [H] ${HDT_TITLE}
 item --key P partedmagic                                        [P] ${PARTEDMAGIC_TITLE}
 item --key G gparted                                            [G] ${GPARTED_TITLE}
 item --key C clonezilla                                         [C] ${CLONEZILLA_TITLE}
+item --key S shredos                                            [S] ${SHREDOS_TITLE}
 item --gap
 item --key I windows-ipdt                                       [I] ${WINDOWS_IPDT}
 item --key W windows-recovery-environment                       [W] ${WINDOWS_RECOVERY_TITLE}
@@ -256,29 +375,29 @@ iseq ${platform} pcbios && item --key N ntpasswd-submenu        [N] Windows Rese
 iseq ${platform} efi && item --gap ||
 iseq ${platform} efi && item --gap ||
 iseq ${platform} efi && item --gap                              ${BIOS_ONLY_TOOLS_NOTE} ||
-choose --default production-live-rescue-mint-cinnamon ts-menu-selection && goto ${ts-menu-selection} || goto error
+choose --default production-live-toolkit-mint-cinnamon diagnostic-tools-submenu-selection && goto ${diagnostic-tools-submenu-selection} || goto error
 
-:production-live-rescue-mint-cinnamon
+:production-live-toolkit-mint-cinnamon
 echo
-echo ${PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+echo ${PRODUCTION_LIVE_TOOLKIT_MINT_CINNAMON_TITLE}
 echo
 params
-param title ${PRODUCTION_LIVE_RESCUE_MINT_CINNAMON_TITLE}
-param distro mint-live-rescue
-param version ${PRODUCTION_LIVE_RESCUE_MINT_VERSION}
+param title ${PRODUCTION_LIVE_TOOLKIT_MINT_CINNAMON_TITLE}
+param distro mint-live-toolkit
+param version ${PRODUCTION_LIVE_TOOLKIT_MINT_VERSION}
 param memsize ${memsize}
 param platform ${platform}
 boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
 goto error
 
-:production-live-rescue-mint-cli
+:production-live-toolkit-mint-cli
 echo
-echo ${PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE}
+echo ${PRODUCTION_LIVE_TOOLKIT_MINT_CLI_TITLE}
 echo
 params
-param title ${PRODUCTION_LIVE_RESCUE_MINT_CLI_TITLE}
-param distro mint-live-rescue
-param version ${PRODUCTION_LIVE_RESCUE_MINT_VERSION}
+param title ${PRODUCTION_LIVE_TOOLKIT_MINT_CLI_TITLE}
+param distro mint-live-toolkit
+param version ${PRODUCTION_LIVE_TOOLKIT_MINT_VERSION}
 param memsize ${memsize}
 param platform ${platform}
 param extra_args 3
@@ -359,6 +478,13 @@ echo
 initrd ${TFTP_OR_HTTP}://${PXE_SERVER}/clonezilla/initrd.img || goto error
 echo
 boot ${TFTP_OR_HTTP}://${PXE_SERVER}/clonezilla/vmlinuz initrd=initrd.img boot=live username=user union=overlay config components quiet noswap edd=on nomodeset nodmraid locales= keyboard-layouts= ocs_live_run="ocs-live-general" ocs_live_extra_param="" ocs_live_batch=no net.ifnames=0 nosplash noprompt fetch=http://${PXE_SERVER}/clonezilla/filesystem.squashfs ||
+goto error
+
+:shredos
+echo
+echo ${SHREDOS_TITLE}
+echo
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/shredos/shredos console=tty3 loglevel=3 ||
 goto error
 
 :windows-ipdt
@@ -468,14 +594,14 @@ item --key B testing-live-mint-cinnamon                     [B] ${TESTING_LIVE_M
 item --gap
 item --key W testing-install-windows                        [W] ${TESTING_INSTALL_WINDOWS_TITLE}
 item --gap
-item --key L testing-live-rescue-mint-cinnamon              [L] ${TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE}
-item --key T testing-live-rescue-mint-cli                   [T] ${TESTING_LIVE_RESCUE_MINT_CLI_TITLE}
+item --key L testing-live-toolkit-mint-cinnamon              [L] ${TESTING_LIVE_TOOLKIT_MINT_CINNAMON_TITLE}
+item --key T testing-live-toolkit-mint-cli                   [T] ${TESTING_LIVE_TOOLKIT_MINT_CLI_TITLE}
 item --gap
 item --key R force-reload                                   [R] Reload iPXE Menu
 iseq ${platform} efi && item --key F force-switch-platform  [F] Force Load Legacy BIOS iPXE Menu || item --key F force-switch-platform [F] Force Load UEFI iPXE Menu
 item --gap
 item --key S ipxe-shell                                     [S] iPXE Shell
-iseq ${platform} efi && item --key U uefi-shell             [U] UEFI Shell (Version 2.2, 22H2) ||
+iseq ${platform} efi && item --key U uefi-shell             [U] UEFI Shell (Version 2.2, 24H1) ||
 item --gap
 item --gap
 item --gap                                                  MAC: ${mac}
@@ -494,6 +620,7 @@ echo
 params # Don't include memsize param so it'll always prompt for toram or not (even though that was just for Mint 19 debugging and will now always prompt no matter what on Mint 20 and newer).
 param title ${TESTING_INSTALL_MINT_CINNAMON_TITLE}
 param version ${TESTING_MINT_VERSION}
+#param desktop cinnamon-beta
 param preseed testing-ubiquity
 param platform ${platform}
 boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
@@ -506,6 +633,7 @@ echo
 params # Don't include memsize param so it'll always prompt for toram or not (even though that was just for Mint 19 debugging and will now always prompt no matter what on Mint 20 and newer).
 param title ${TESTING_LIVE_MINT_CINNAMON_TITLE}
 param version ${TESTING_MINT_VERSION}
+#param desktop cinnamon-beta
 param preseed testing-liveboot
 param platform ${platform}
 #param extra_args memtest=17
@@ -546,27 +674,29 @@ echo
 boot ${TFTP_OR_HTTP}://${PXE_SERVER}/wimboot gui quiet ||
 goto error
 
-:testing-live-rescue-mint-cinnamon
+:testing-live-toolkit-mint-cinnamon
 echo
-echo ${TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE}
+echo ${TESTING_LIVE_TOOLKIT_MINT_CINNAMON_TITLE}
 echo
 params
-param title ${TESTING_LIVE_RESCUE_MINT_CINNAMON_TITLE}
-param distro mint-live-rescue
-param version ${TESTING_LIVE_RESCUE_MINT_VERSION}
+param title ${TESTING_LIVE_TOOLKIT_MINT_CINNAMON_TITLE}
+param distro mint-live-toolkit
+param version ${TESTING_LIVE_TOOLKIT_MINT_VERSION}
+#param desktop cinnamon-beta
 param memsize ${memsize}
 param platform ${platform}
 boot --timeout 3000 http://${PXE_SERVER}/boot/ipxe-linux-booter.php##params ||
 goto error
 
-:testing-live-rescue-mint-cli
+:testing-live-toolkit-mint-cli
 echo
-echo ${TESTING_LIVE_RESCUE_MINT_CLI_TITLE}
+echo ${TESTING_LIVE_TOOLKIT_MINT_CLI_TITLE}
 echo
 params
-param title ${TESTING_LIVE_RESCUE_MINT_CLI_TITLE}
-param distro mint-live-rescue
-param version ${TESTING_LIVE_RESCUE_MINT_VERSION}
+param title ${TESTING_LIVE_TOOLKIT_MINT_CLI_TITLE}
+param distro mint-live-toolkit
+param version ${TESTING_LIVE_TOOLKIT_MINT_VERSION}
+#param desktop cinnamon-beta
 param memsize ${memsize}
 param platform ${platform}
 param extra_args 3

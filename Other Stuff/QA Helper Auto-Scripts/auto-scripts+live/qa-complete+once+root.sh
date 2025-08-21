@@ -19,3 +19,31 @@
 
 echo 'RE-RUNNING FIRST LAUNCH SCRIPTS'
 "${BASH_SOURCE[0]%/*}/launch+once+root.sh" 'qa-complete'
+
+
+echo 'CUSTOMIZING SETTINGS FOR END USER' # https://help.gnome.org/admin/system-admin-guide/stable/dconf-custom-defaults.html.en
+cat << DCONF_USER_PROFILE_EOF > '/etc/dconf/profile/user'
+user-db:user
+system-db:local
+DCONF_USER_PROFILE_EOF
+
+mkdir -p '/etc/dconf/db/local.d'
+
+cat << DCONF_LOCAL_CUSTOMIZATIONS_EOF > '/etc/dconf/db/local.d/00-fg-customizations'
+# Show trash on desktop
+[org/nemo/desktop]
+trash-icon-visible=true
+
+# Set panel clock format
+[org/cinnamon/desktop/interface]
+clock-use-24h=false
+clock-show-date=true
+
+# Set screensaver/lock screen clock format
+[org/cinnamon/desktop/screensaver]
+use-custom-format=true
+time-format='%-I:%M:%S %p'
+date-format='    %A %B %-d, %Y'
+DCONF_LOCAL_CUSTOMIZATIONS_EOF
+
+dconf update

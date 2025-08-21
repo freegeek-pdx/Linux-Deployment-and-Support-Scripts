@@ -4,7 +4,9 @@
 # Ignore file types in any location:
 *.txt
 *.png
+*.svg
 *.pxm
+*.pxd
 *.zip
 *.ini
 *.config
@@ -16,6 +18,8 @@ OLD-*
 # Ignore specific folders within "Mint Installer Resources":
 dependencies*/
 source-iso-boot-menus/
+fg-install-drive-resources/
+UNUSED/
 
 # Ignore specific folders and files within "Other Stuff/QA Helper Auto-Scripts":
 lock_screen_slideshow.sh

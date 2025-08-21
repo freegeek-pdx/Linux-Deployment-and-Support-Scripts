@@ -3,7 +3,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 01/09/23
+# Last Updated: 05/14/24
 #
 # MIT License
 #
@@ -21,5 +21,5 @@
 #
 
 if [[ -d '/usr/local/share/build-info' && ! -d '/target/usr/local/share/build-info' ]]; then
-    cp -rf '/usr/local/share/build-info' '/target/usr/local/share/build-info' # Copy build-info to installed OS in case QA Helper was used during pre-install.
+	cp -rf '/usr/local/share/build-info' '/target/usr/local/share/build-info' # Copy build-info to installed OS in case QA Helper was used during pre-install.
 fi
