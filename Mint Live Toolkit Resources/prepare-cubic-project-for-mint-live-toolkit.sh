@@ -79,14 +79,16 @@ OS Version: ${os_version}
 OS Codename: ${os_codename}
 Version Suffix: ${version_suffix:-N/A}"
 
-cubic_project_parent_path="${HOME}/Documents/Free Geek"
+cubic_project_parent_path="${HOME}/Linux Deployment"
+mkdir -p "${cubic_project_parent_path}"
+
 source_iso_name="linuxmint-${os_version}-cinnamon-64bit${version_suffix}.iso"
 
-if [[ -f "${cubic_project_parent_path}/${source_iso_name}" ]]; then
-	echo -e "\nPRESS ENTER TO CONTINUE WITH ISO PATH \"${cubic_project_parent_path}/${source_iso_name}\" (OR PRESS CONTROL-C TO CANCEL)"
+if [[ -f "${cubic_project_parent_path}/Linux ISOs/${source_iso_name}" ]]; then
+	echo -e "\nPRESS ENTER TO CONTINUE WITH ISO PATH \"${cubic_project_parent_path}/Linux ISOs/${source_iso_name}\" (OR PRESS CONTROL-C TO CANCEL)"
 	read -r
 else
-	>&2 echo -e "\nERROR: SOURCE ISO NOT FOUND AT \"${cubic_project_parent_path}/${source_iso_name}\""
+	>&2 echo -e "\nERROR: SOURCE ISO NOT FOUND AT \"${cubic_project_parent_path}/Linux ISOs/${source_iso_name}\""
 	read -r
 	exit 5
 fi
@@ -116,8 +118,8 @@ if ! apt-cache policy | grep -qF 'cubic-wizard-release'; then
 fi
 
 echo -e "\n>>> $(command -v cubic &> /dev/null && echo 'UPDATING' || echo 'INSTALLING') CUBIC <<<\n"
-sudo apt update
-sudo apt install --no-install-recommends cubic || echo 'UPDATE ERROR - CONTINUING ANYWAY'
+sudo apt update || echo 'APT UPDATE ERROR - CONTINUING ANYWAY'
+sudo apt install --no-install-recommends cubic || echo 'CUBIC UPDATE ERROR - CONTINUING ANYWAY'
 
 
 # PREPARE CUBIC PROJECT
@@ -151,7 +153,7 @@ directory = ${cubic_project_path}
 
 [Original]
 iso_file_name = ${source_iso_name}
-iso_directory = ${cubic_project_parent_path}
+iso_directory = ${cubic_project_parent_path}/Linux ISOs
 iso_volume_id = Linux Mint ${os_version} Cinnamon 64-bit
 iso_release_name = ${os_codename}
 iso_disk_name = Linux Mint ${os_version} "${os_codename}" - Release amd64

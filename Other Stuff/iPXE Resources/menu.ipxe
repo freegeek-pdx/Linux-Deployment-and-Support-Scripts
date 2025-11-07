@@ -28,21 +28,20 @@ iseq ${platform} pcbios && set TFTP_OR_HTTP tftp || set TFTP_OR_HTTP http
 # NOTE: UEFI boots required "initrd=[INITRD-FILENAME]" as a kernel parameter to boot properly. This is not required (but does not cause problems) for BIOS boots.
 # NOTE: Ubuntu 19.10 (Mint 20) or newer requires "ip=dhcp" as boot arg: https://bugs.launchpad.net/ubuntu/+source/casper/+bug/1848018
 
-set PRODUCTION_MINT_VERSION                     22.1
-set TESTING_MINT_VERSION                        22.1
+set PRODUCTION_MINT_VERSION                     22.2
+set TESTING_MINT_VERSION                        22.2
 
-set PRODUCTION_LIVE_TOOLKIT_MINT_VERSION        22.1
-set TESTING_LIVE_TOOLKIT_MINT_VERSION           22.1
+set PRODUCTION_LIVE_TOOLKIT_MINT_VERSION        22.2
+set TESTING_LIVE_TOOLKIT_MINT_VERSION           22.2
 
-set PRODUCTION_WINDOWS_10_FEATURE_VERSION       22H2
-set PRODUCTION_WINDOWS_11_FEATURE_VERSION       24H2
-set TESTING_WINDOWS_11_FEATURE_VERSION          24H2
+set PRODUCTION_WINDOWS_11_FEATURE_VERSION       25H2
+set TESTING_WINDOWS_11_FEATURE_VERSION          25H2
 
-set PRODUCTION_WINPE_IMAGE_NAME                 WinRE-11-${PRODUCTION_WINDOWS_11_FEATURE_VERSION}
-set TESTING_WINPE_IMAGE_NAME                    WinRE-11-${TESTING_WINDOWS_11_FEATURE_VERSION}
+set PRODUCTION_WINPE_IMAGE_NAME                 WinRE-11-Pro-24H2
+set TESTING_WINPE_IMAGE_NAME                    WinRE-11-Pro-24H2
 
 set PRODUCTION_INSTALL_MINT_CINNAMON_TITLE      Install Linux Mint ${PRODUCTION_MINT_VERSION} (Cinnamon)
-set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows 10 (${PRODUCTION_WINDOWS_10_FEATURE_VERSION}) or Windows 11 (${PRODUCTION_WINDOWS_11_FEATURE_VERSION})
+set PRODUCTION_INSTALL_WINDOWS_TITLE            Install Windows 11 (${PRODUCTION_WINDOWS_11_FEATURE_VERSION})
 
 set PRODUCTION_FG_ERASER_TITLE                  FG Eraser
 set PRODUCTION_FG_ERASER_GUI_TITLE              ${PRODUCTION_FG_ERASER_TITLE} (GUI Mode)
@@ -61,14 +60,14 @@ set GPARTED_TITLE                               GParted (1.6.0-10)
 set CLONEZILLA_TITLE                            Clonezilla (3.2.0-5)
 set SHREDOS_TITLE                               ShredOS/nwipe (2024.02.2_26.0_x86-64_0.37)
 set WINDOWS_IPDT                                Install Windows with IPDT for Intel CPU Testing
-set WINDOWS_RECOVERY_TITLE                      Windows 11 Recovery Environment (${PRODUCTION_WINDOWS_11_FEATURE_VERSION})
+set WINDOWS_RECOVERY_TITLE                      Windows 11 Recovery Environment
 
 set BIOS_ONLY_TOOLS_NOTE                        * Starred tools are not compatible with UEFI. Reboot in Legacy BIOS mode to use them.
 
 set IT_TESTING_SUBMENU_PASSWORD                 password
 set TESTING_INSTALL_MINT_CINNAMON_TITLE         TEST MODE: Install Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
 set TESTING_LIVE_MINT_CINNAMON_TITLE            TEST MODE: Live Boot Linux Mint ${TESTING_MINT_VERSION} (Cinnamon)
-set TESTING_INSTALL_WINDOWS_TITLE               TEST MODE: Install Windows 10 (${PRODUCTION_WINDOWS_10_FEATURE_VERSION}) or Windows 11 (${TESTING_WINDOWS_11_FEATURE_VERSION})
+set TESTING_INSTALL_WINDOWS_TITLE               TEST MODE: Install Windows 11 (${TESTING_WINDOWS_11_FEATURE_VERSION})
 set TESTING_LIVE_TOOLKIT_MINT_CINNAMON_TITLE    TEST MODE: Live Toolkit (Mint ${TESTING_LIVE_TOOLKIT_MINT_VERSION} Cinnamon)
 set TESTING_LIVE_TOOLKIT_MINT_CLI_TITLE         TEST MODE: Live Toolkit (Mint ${TESTING_LIVE_TOOLKIT_MINT_VERSION} CLI)
 

@@ -169,7 +169,8 @@ while IFS='"' read -r _ this_drive_full_id _ this_drive_size_bytes _ this_drive_
 done < <(lsblk -abdPpo 'NAME,SIZE,TRAN,TYPE,RO,VENDOR,MODEL' -x 'NAME')
 
 
-cubic_project_parent_path="${HOME}/Documents/Free Geek"
+cubic_project_parent_path="${HOME}/Linux Deployment"
+mkdir -p "${cubic_project_parent_path}"
 
 # ALWAYS USE MOST RECENT ISO:
 

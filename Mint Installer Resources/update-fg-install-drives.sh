@@ -19,7 +19,7 @@
 
 echo -e '\nUpdate FG Install Drives'
 
-os_version="${1:-22.1}"
+os_version="${1:-22.2}"
 version_suffix="${2,,}"
 
 if [[ -z "${os_version}" ]]; then
@@ -152,7 +152,7 @@ while IFS='"' read -r _ this_drive_full_id _ this_drive_size_bytes _ this_drive_
 	# Use "_" to ignore field titles that we don't need. See more about "read" usages with IFS and skipping values at https://mywiki.wooledge.org/BashFAQ/001#Field_splitting.2C_whitespace_trimming.2C_and_other_input_processing
 	# NOTE: I don't believe the model name should ever contain double quotes ("), but if somehow it does having it as the last variable set by "read" means any of the remaining double quotes will not be split on and would be included in the value (and no other values could contain double quotes).
 
-	if [[ "${this_drive_type}" == 'disk' && "${this_drive_read_only}" == '0' && -n "${this_drive_size_bytes}" && "${this_drive_size_bytes}" != '0' && "${this_drive_transport}" == 'usb' ]] && (( this_drive_size_bytes > 15000000000 && this_drive_size_bytes < 129000000000 )); then # Only list DISKs with a SIZE between 16GB and 128GB that have a TRANsport type of USB.
+	if [[ "${this_drive_type}" == 'disk' && "${this_drive_read_only}" == '0' && -n "${this_drive_size_bytes}" && "${this_drive_size_bytes}" != '0' && "${this_drive_transport}" == 'usb' ]] && (( this_drive_size_bytes > 15000000000 && this_drive_size_bytes < 513000000000 )); then # Only list DISKs with a SIZE between 16GB and 512GB that have a TRANsport type of USB.
 		this_drive_brand="$(trim_and_squeeze_whitespace "${this_drive_brand//_/ }")" # Replace all underscores with spaces (see comments for model below).
 
 		this_drive_model="${this_drive_model%\"}" # If somehow the model contained quotes the trailing quote will be included by "read", so remove it.
@@ -182,7 +182,8 @@ while IFS='"' read -r _ this_drive_full_id _ this_drive_size_bytes _ this_drive_
 done < <(lsblk -abdPpo 'NAME,SIZE,TRAN,TYPE,RO,VENDOR,MODEL' -x 'NAME')
 
 
-cubic_project_parent_path="${HOME}/Documents/Free Geek"
+cubic_project_parent_path="${HOME}/Linux Deployment"
+mkdir -p "${cubic_project_parent_path}"
 
 # ALWAYS USE MOST RECENT CUBIC PROJECT FOR THE SPECIFIED VERSION:
 

@@ -23,7 +23,7 @@ PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
 if true; then # Wrap entire script in "if true" block so that if there is a incomplete "curl" download of the script that the shell throws an error instead of executing an incomplete download.
 	readonly APP_NAME='FG Eraser'
-	readonly APP_VERSION='2025.8.19-1'
+	readonly APP_VERSION='2025.10.31-1'
 
 	# shellcheck disable=SC2292
 	if [ -t 1 ]; then # ONLY use ANSI styling if stdout IS associated with an interactive terminal.
@@ -117,14 +117,14 @@ if true; then # Wrap entire script in "if true" block so that if there is a inco
 	readonly OS_NAME
 
 	readonly PRIVATE_STRINGS_PASSWORD_PATH="/usr/share/${APP_NAME_FOR_FILE_PATHS}/${APP_NAME_FOR_FILE_PATHS}-password.txt"
-	# NO LONGER DOWNLOAD PRIVATE STRINGS PASSWORD SINCE WE *ONLY* WANT TO ALLOW RUNNING ON UP-TO-DATE USBs AND NETBOOT.
-	# if [[ ! -s "${PRIVATE_STRINGS_PASSWORD_PATH}" ]] && ping -W 2 -c 1 'tools.freegeek.org' &> /dev/null; then # This URL is only available on Free Geek's LOCAL network.
-	# 	rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
-	# 	mkdir -p "${PRIVATE_STRINGS_PASSWORD_PATH%/*}"
-	# 	if ! curl -m 5 -sfL "http://tools.freegeek.org/${APP_NAME_FOR_FILE_PATHS}/${APP_NAME_FOR_FILE_PATHS}-password.txt" -o "${PRIVATE_STRINGS_PASSWORD_PATH}" &> /dev/null || [[ ! -f "${PRIVATE_STRINGS_PASSWORD_PATH}" ]]; then
-	# 		rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
-	# 	fi
-	# fi
+	# ONLY ALLOW DOWNLOADING PRIVATE STRINGS PASSWORD ON ARM CPUs SINCE WE *ONLY* WANT TO ALLOW RUNNING ON UP-TO-DATE "FG ERASER LIVE" USBs AND NETBOOT FOR x86 BUT DON'T CURRENTLY HAVE "FG ERASER LIVE" BUILT FOR ARM.
+	if [[ "$(uname -m)" != 'x86_64' && ! -s "${PRIVATE_STRINGS_PASSWORD_PATH}" ]] && ping -W 2 -c 1 'tools.freegeek.org' &> /dev/null; then # This URL is only available on Free Geek's LOCAL network.
+		rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
+		mkdir -p "${PRIVATE_STRINGS_PASSWORD_PATH%/*}"
+		if ! curl -m 5 -sfL "http://tools.freegeek.org/${APP_NAME_FOR_FILE_PATHS}/${APP_NAME_FOR_FILE_PATHS}-password.txt" -o "${PRIVATE_STRINGS_PASSWORD_PATH}" &> /dev/null || [[ ! -f "${PRIVATE_STRINGS_PASSWORD_PATH}" ]]; then
+			rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
+		fi
+	fi
 
 	if [[ ! -s "${PRIVATE_STRINGS_PASSWORD_PATH}" ]] || \
 		! PRIVATE_STRINGS="$(echo 'U2FsdGVkX18+7CvBu1Zw1ZotpyiOjRTtC09DwAMTOvUxF9LnPaz7SAZhftaTP8OIOKgjAfSSAnh8wQLUZY99BhMzK9IWWJgRgbaxEcekpZLVnr8HN91hFx/EeVCZpCswGCH93BMgTMwcDrUqXfI0RL92TiBjS7dv/EM9pl90goxphMxnuyUsS7WnY+OX2rMY/KD2tv9aFBwhi2dBMyoUlPw7fNsrfdsKmvf9N5c0qP/fPWyrJz+mNSlVCftSaySk' | openssl enc -d -aes256 -md sha512 -a -A -pass file:"${PRIVATE_STRINGS_PASSWORD_PATH}" 2> /dev/null)" || \
@@ -737,14 +737,14 @@ OS_NAME="$(lsb_release -ds 2> /dev/null)${release_codename}${debian_version}${de
 readonly OS_NAME
 
 readonly PRIVATE_STRINGS_PASSWORD_PATH="/usr/share/${APP_NAME_FOR_FILE_PATHS}/${APP_NAME_FOR_FILE_PATHS}-password.txt"
-# NO LONGER DOWNLOAD PRIVATE STRINGS PASSWORD SINCE WE *ONLY* WANT TO ALLOW RUNNING ON UP-TO-DATE USBs AND NETBOOT.
-# if [[ ! -s "${PRIVATE_STRINGS_PASSWORD_PATH}" ]] && ping -W 2 -c 1 'tools.freegeek.org' &> /dev/null; then # This URL is only available on Free Geek's LOCAL network.
-# 	rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
-# 	mkdir -p "${PRIVATE_STRINGS_PASSWORD_PATH%/*}"
-# 	if ! curl -m 5 -sfL "http://tools.freegeek.org/${APP_NAME_FOR_FILE_PATHS}/${APP_NAME_FOR_FILE_PATHS}-password.txt" -o "${PRIVATE_STRINGS_PASSWORD_PATH}" &> /dev/null || [[ ! -f "${PRIVATE_STRINGS_PASSWORD_PATH}" ]]; then
-# 		rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
-# 	fi
-# fi
+# ONLY ALLOW DOWNLOADING PRIVATE STRINGS PASSWORD ON ARM CPUs SINCE WE *ONLY* WANT TO ALLOW RUNNING ON UP-TO-DATE "FG ERASER LIVE" USBs AND NETBOOT FOR x86 BUT DON'T CURRENTLY HAVE "FG ERASER LIVE" BUILT FOR ARM.
+if [[ "$(uname -m)" != 'x86_64' && ! -s "${PRIVATE_STRINGS_PASSWORD_PATH}" ]] && ping -W 2 -c 1 'tools.freegeek.org' &> /dev/null; then # This URL is only available on Free Geek's LOCAL network.
+	rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
+	mkdir -p "${PRIVATE_STRINGS_PASSWORD_PATH%/*}"
+	if ! curl -m 5 -sfL "http://tools.freegeek.org/${APP_NAME_FOR_FILE_PATHS}/${APP_NAME_FOR_FILE_PATHS}-password.txt" -o "${PRIVATE_STRINGS_PASSWORD_PATH}" &> /dev/null || [[ ! -f "${PRIVATE_STRINGS_PASSWORD_PATH}" ]]; then
+		rm -rf "${PRIVATE_STRINGS_PASSWORD_PATH}"
+	fi
+fi
 
 if [[ ! -s "${PRIVATE_STRINGS_PASSWORD_PATH}" ]] || \
 	! PRIVATE_STRINGS="$(echo 'U2FsdGVkX18+7CvBu1Zw1ZotpyiOjRTtC09DwAMTOvUxF9LnPaz7SAZhftaTP8OIOKgjAfSSAnh8wQLUZY99BhMzK9IWWJgRgbaxEcekpZLVnr8HN91hFx/EeVCZpCswGCH93BMgTMwcDrUqXfI0RL92TiBjS7dv/EM9pl90goxphMxnuyUsS7WnY+OX2rMY/KD2tv9aFBwhi2dBMyoUlPw7fNsrfdsKmvf9N5c0qP/fPWyrJz+mNSlVCftSaySk' | openssl enc -d -aes256 -md sha512 -a -A -pass file:"${PRIVATE_STRINGS_PASSWORD_PATH}" 2> /dev/null)" || \

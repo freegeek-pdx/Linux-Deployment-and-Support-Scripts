@@ -32,12 +32,13 @@ if [[ "$(hostname)" == 'cubic' ]]; then
 	exit 1
 fi
 
-cubic_project_parent_path="${HOME}/Documents/Free Geek"
+cubic_project_parent_path="${HOME}/Linux Deployment"
+mkdir -p "${cubic_project_parent_path}"
 
 # ALWAYS USE MOST RECENT ISO FOR THE SPECIFIED VERSION:
 # Suppress ShellCheck suggestion to use find instead of ls to better handle non-alphanumeric filenames since this will only ever be alphanumeric filenames.
 # shellcheck disable=SC2012
-source_iso_path="$(ls -t "${cubic_project_parent_path}/debian-live-"*'-amd64-standard.iso' | head -1)"
+source_iso_path="$(ls -t "${cubic_project_parent_path}/Linux ISOs/debian-live-"*'-amd64-standard.iso' | head -1)"
 source_iso_name="${source_iso_path##*/}"
 source_iso_version="$(echo "${source_iso_name}" | cut -d '-' -f '3')"
 
@@ -93,8 +94,8 @@ if ! apt-cache policy | grep -qF 'cubic-wizard-release'; then
 fi
 
 echo -e "\n>>> $(command -v cubic &> /dev/null && echo 'UPDATING' || echo 'INSTALLING') CUBIC <<<\n"
-sudo apt update
-sudo apt install --no-install-recommends cubic || echo 'UPDATE ERROR - CONTINUING ANYWAY'
+sudo apt update || echo 'APT UPDATE ERROR - CONTINUING ANYWAY'
+sudo apt install --no-install-recommends cubic || echo 'CUBIC UPDATE ERROR - CONTINUING ANYWAY'
 
 
 # PREPARE CUBIC PROJECT
@@ -128,7 +129,7 @@ directory = ${cubic_project_path}
 
 [Original]
 iso_file_name = ${source_iso_name}
-iso_directory = ${cubic_project_parent_path}
+iso_directory = ${cubic_project_parent_path}/Linux ISOs
 iso_volume_id = Debian Live Standard amd64
 iso_release_name = 
 iso_disk_name = 

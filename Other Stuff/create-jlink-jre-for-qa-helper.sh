@@ -29,7 +29,7 @@ temp_folder_path='/tmp/qa-helper-jlink-jre'
 rm -rf "${temp_folder_path}"
 mkdir -p "${temp_folder_path}"
 
-jdk_download_url="$(curl -m 5 -sfw '%{redirect_url}' 'https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse')"
+jdk_download_url="$(curl -m 5 -sfw '%{redirect_url}' 'https://api.adoptium.net/v3/binary/latest/25/ga/linux/x64/jdk/hotspot/normal/eclipse')"
 jdk_archive_filename="${jdk_download_url##*/}"
 echo -e "\nDOWNLOADING \"${jdk_download_url}\"..."
 curl --connect-timeout 5 --progress-bar -fL "${jdk_download_url}" -o "${temp_folder_path}/${jdk_archive_filename}" || exit 1

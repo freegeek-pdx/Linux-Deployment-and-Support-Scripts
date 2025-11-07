@@ -19,7 +19,8 @@
 
 set -ex
 
-cd "${HOME}/Documents/Free Geek/iPXE for FG" || exit 1
+mkdir -p "${HOME}/Linux Deployment/iPXE for FG"
+cd "${HOME}/Linux Deployment/iPXE for FG" || exit 1
 sudo rm -f ./*'.efi' ./*'.pxe' ./*'.kpxe' ./*'.lkrn'
 sudo rm -rf 'ipxe-netboot/' 'ipxe-usbboot/' 'ipxe/'
 

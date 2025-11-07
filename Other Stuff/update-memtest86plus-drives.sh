@@ -138,7 +138,7 @@ while IFS='"' read -r _ this_drive_full_id _ this_drive_size_bytes _ this_drive_
 	# Use "_" to ignore field titles that we don't need. See more about "read" usages with IFS and skipping values at https://mywiki.wooledge.org/BashFAQ/001#Field_splitting.2C_whitespace_trimming.2C_and_other_input_processing
 	# NOTE: I don't believe the model name should ever contain double quotes ("), but if somehow it does having it as the last variable set by "read" means any of the remaining double quotes will not be split on and would be included in the value (and no other values could contain double quotes).
 
-	if [[ "${this_drive_type}" == 'disk' && "${this_drive_read_only}" == '0' && -n "${this_drive_size_bytes}" && "${this_drive_size_bytes}" != '0' && "${this_drive_transport}" == 'usb' ]] && (( this_drive_size_bytes > 1000000000 && this_drive_size_bytes < 17000000000 )); then # Only list DISKs with a SIZE between 2GB and 16GB that have a TRANsport type of USB.
+	if [[ "${this_drive_type}" == 'disk' && "${this_drive_read_only}" == '0' && -n "${this_drive_size_bytes}" && "${this_drive_size_bytes}" != '0' && "${this_drive_transport}" == 'usb' ]] && (( this_drive_size_bytes > 1000000000 && this_drive_size_bytes < 33000000000 )); then # Only list DISKs with a SIZE between 2GB and 32GB that have a TRANsport type of USB.
 		this_drive_brand="$(trim_and_squeeze_whitespace "${this_drive_brand//_/ }")" # Replace all underscores with spaces (see comments for model below).
 
 		this_drive_model="${this_drive_model%\"}" # If somehow the model contained quotes the trailing quote will be included by "read", so remove it.
@@ -186,7 +186,7 @@ if [[ -n "${memtest86plus_drives_list}" ]]; then
 		>&2 echo -e '\n\nERROR: SOME DEVICE CONNECTED AT USB 1.0 SPEED\n'
 
 		read -r
-		exit 3
+		exit 1
 	fi
 
 	latest_memtest86plus_download_url="https://memtest.org$(curl -m 5 -sfL 'https://memtest.org' | awk -F '"' '$2 ~ /\_64.iso\.zip$/ { print $2; exit }')"
@@ -196,7 +196,7 @@ if [[ -n "${memtest86plus_drives_list}" ]]; then
 	else
 		>&2 echo -e "\n\nERROR: FAILED TO RETRIEVE LATEST MEMTEST86+ DOWNLOAD URL - INTERNET REQUIRED\n"
 		read -r
-		exit 5
+		exit 2
 	fi
 
 	echo -e '\n\nPRESS ENTER TO CONTINUE WITH SPECIFIED URL AND LISTED DRIVES\n(PRESS CONTROL-C TO CANCEL)'
@@ -204,22 +204,31 @@ if [[ -n "${memtest86plus_drives_list}" ]]; then
 else
 	>&2 echo -e '\nERROR: NO MEMTEST86 DRIVES DETECTED\n'
 	read -r
-	exit 5
+	exit 3
 fi
 
 sudo -v # Run "sudo -v" with no command to pre-cache the authorization for subsequent commands requiring "sudo" (such as "dd" and "umount").
 
 echo -e "\n\nDownloading Latest Memtest86+:\n\n${latest_memtest86plus_download_url}"
 
-rm -rf "${TMPDIR}/mt86plus_latest.iso.zip" "${TMPDIR}/memtest.iso"
+rm -rf "${TMPDIR}/mt86plus_latest.iso.zip"
 curl --connect-timeout 5 --progress-bar -fL "${latest_memtest86plus_download_url}" -o "${TMPDIR}/mt86plus_latest.iso.zip"
+memtest86plus_iso_filename="$(unzip -l "${TMPDIR}/mt86plus_latest.iso.zip" | awk '/\.iso$/ { print $NF; exit }')"
+
+if [[ "${memtest86plus_iso_filename}" != *'.iso'* ]]; then
+	>&2 echo -e "\n\nERROR: FAILED TO DETERMINE MEMTEST86+ ISO FILENAME  - INTERNET REQUIRED\n"
+	read -r
+	exit 4
+fi
+
+rm -rf "${TMPDIR}/${memtest86plus_iso_filename:?}"
 unzip -jo "${TMPDIR}/mt86plus_latest.iso.zip" -d "${TMPDIR}"
 rm -f "${TMPDIR}/mt86plus_latest.iso.zip"
 
-if [[ ! -f "${TMPDIR}/memtest.iso" ]]; then
+if [[ ! -f "${TMPDIR}/${memtest86plus_iso_filename}" ]]; then
 	>&2 echo -e "\n\nERROR: DOWNLOADING LATEST MEMTEST86+ FAILED - INTERNET REQUIRED\n"
 	read -r
-	exit 4
+	exit 5
 fi
 
 overall_start_timestamp="$(date '+%s')"
@@ -259,7 +268,7 @@ while IFS=':' read -r this_drive_full_id this_drive_usb_id this_human_readable_s
 			blockdev_exit_code="$?"
 
 			if (( blockdev_exit_code == 0 )) && [[ -n "${this_drive_block_size}" ]]; then
-				sudo dd if="${TMPDIR}/memtest.iso" of="${this_drive_full_id}" bs="${this_drive_block_size}" conv=fsync status=progress
+				sudo dd if="${TMPDIR}/${memtest86plus_iso_filename}" of="${this_drive_full_id}" bs="${this_drive_block_size}" conv=fsync status=progress
 				dd_exit_code="$?"
 
 				if (( dd_exit_code == 0 )); then
@@ -286,7 +295,7 @@ done <<< "${memtest86plus_drives_list}"
 
 echo -e "\n----------------------------------------\n"
 
-rm -f "${TMPDIR}/memtest.iso"
+rm -f "${TMPDIR}/${memtest86plus_iso_filename:?}"
 
 if ! $update_drive_failed; then
 	echo "Finished Updating ${disk_index} Memtest86+ Drives in $(human_readable_duration_from_seconds "$(( $(date '+%s') - overall_start_timestamp ))")"

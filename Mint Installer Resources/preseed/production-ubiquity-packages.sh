@@ -3,7 +3,7 @@
 
 #
 # Created by Pico Mitchell
-# Last Updated: 07/30/25
+# Last Updated: 10/07/25
 #
 # MIT License
 #
@@ -85,10 +85,17 @@ apt install -y mint-meta-codecs
 # 	fi
 # fi
 
+if [[ "${MODE}" == 'production' ]]; then # BUT STILL install any KERNEL updates that are available.
+	echo -e '\n\nINSTALLING KERNEL UPDATES:\n'
+	mintupdate-cli upgrade -rky
+	mintupdate-cli upgrade -rky # Must run twice in case only a required update for "mintupdate" is installed on the first execution.
+	apt autoremove -y
+fi
+
 if ! xinput | grep -qF 'AT Translated'; then # Does not have internal keyboard, so assume it is a Desktop.
 	# NVIDIA drivers often cause issues on Laptops, so only auto-install ubuntu-drivers on Desktops.
 
-	ubuntu_drivers_list="$(ubuntu-drivers list)"
+	ubuntu_drivers_list="$(ubuntu-drivers list 2> /dev/null)"
 
 	if [[ "${MODE}" == 'testing' ]]; then
 		echo -e "\n\n\n\nDEBUG - ubuntu_drivers_list:\n${ubuntu_drivers_list}\n\n"

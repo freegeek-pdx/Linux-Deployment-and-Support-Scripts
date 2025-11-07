@@ -40,6 +40,8 @@ if ! grep -qF ' boot=casper ' '/proc/cmdline'; then
 
 	if [[ ! -f '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py.orig' ]] && grep -qxF '        self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)' '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py' && grep -qxF '    def do_reboot(self):' '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py'; then
 		echo 'MITIGATING POSSIBLE UBIQUITY/OEM-CONFIG CRASH'
+		# NOTE: This mitigation should already exist in Ubiquity 24.04.3+mint18 and newer: https://github.com/linuxmint/ubiquity/issues/102
+
 		# I don't know the root cause, but sporadically Ubiquity/oem-config can crash on boot with an error: "gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed"
 		# This error and the traceback back be seen in "/var/log/oem-config.log" when it happens.
 		# The line triggering the error is "self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)": https://github.com/linuxmint/ubiquity/blob/81f0fdd8af594f99d2217b7351ee0ef76837b9db/ubiquity/frontend/gtk_ui.py#L265
@@ -64,8 +66,12 @@ if ! grep -qF ' boot=casper ' '/proc/cmdline'; then
 				mv -f '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py'{.orig,}
 			fi
 		fi
-	elif [[ -f '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py.orig' ]] && grep -qxF '            self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)' '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py' && grep -qxF '            self.do_reboot()' '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py'; then
-		echo 'ALREADY MITIGATED POSSIBLE UBIQUITY/OEM-CONFIG CRASH'
+	elif grep -qxF '            self.watch = Gdk.Cursor.new(Gdk.CursorType.WATCH)' '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py' && grep -qxF '            self.do_reboot()' '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py'; then
+		if [[ -f '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py.orig' ]]; then
+			echo 'ALREADY MITIGATED POSSIBLE UBIQUITY/OEM-CONFIG CRASH'
+		else
+			echo 'MAINTAINERS ALREADY MITIGATED POSSIBLE UBIQUITY/OEM-CONFIG CRASH'
+		fi
 	elif [[ -s '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py' ]]; then
 		echo 'UBIQUITY/OEM-CONFIG HAS BEEN UPDATED - CANNOT MITIGATE POSSIBLE UBIQUITY/OEM-CONFIG CRASH (OR IT HAS ALREADY BEEN MITIGATED BY THE MAINTAINERS)'
 	elif [[ -s '/usr/lib/ubiquity/ubiquity/frontend/gtk_ui.py.orig' ]]; then
