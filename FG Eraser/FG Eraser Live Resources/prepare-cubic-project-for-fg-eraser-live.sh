@@ -48,6 +48,9 @@ if [[ -f "${source_iso_path}" ]]; then
 	read -r
 else
 	>&2 echo -e "\nERROR: SOURCE ISO NOT FOUND"
+
+	xdg-open 'https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/'
+
 	read -r
 	exit 5
 fi
@@ -56,6 +59,23 @@ echo 'CHECKING LATEST DEBIAN VERSION...'
 latest_debian_version="$(curl -m 5 -sfL 'https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/' 2> /dev/null | awk -F '-|"' '($10 == "standard.iso") { print $8; exit }')"
 if [[ "${source_iso_version}" == "${latest_debian_version}" ]]; then
 	echo "DEBIAN VERSION ${source_iso_version} IS UP-TO-DATE"
+
+	echo -e "\nVERIFYING ISO \"${source_iso_name}\"..."
+	source_iso_intended_sha256="$(curl -m 5 -sfL "https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/SHA256SUMS" | awk '/-amd64-standard\.iso$/ { print $1; exit }')"
+
+	if [[ -n "${source_iso_intended_sha256}" ]]; then
+		source_iso_actual_sha256="$(shasum -a 256 "${source_iso_path}" | awk '{ print $1; exit }')"
+
+		if [[ "${source_iso_actual_sha256}" == "${source_iso_intended_sha256}" ]]; then
+			echo -e "VERIFIED SOURCE ISO \"${source_iso_name}\""
+		else
+			echo -e "\nERROR: FAILED TO VERIFY SOURCE ISO \"${source_iso_name}\" (\"${source_iso_actual_sha256}\" != \"${source_iso_intended_sha256}\")"
+			read -r
+			exit 5
+		fi
+	else
+		echo -e "\nFAILED TO RETRIEVE SOURCE ISO \"${source_iso_name}\" INTENDED SHA256 - CONTINUING ANYWAY"
+	fi
 else
 	if [[ -z "${latest_debian_version}" ]]; then
 		echo 'FAILED TO RETRIEVE LATEST DEBIAN VERSION'
@@ -74,7 +94,7 @@ build_date="$(date '+%y.%m.%d')"
 cubic_project_path="${cubic_project_parent_path}/FG Eraser Live Updated 20${build_date}"
 
 if [[ -d "${cubic_project_path}" ]]; then
-	echo -e "PROJECT PATH ALREADY EXISTS: ${cubic_project_path}\nPRESS ENTER TO DELETE AND RE-CREATE IT (OR PRESS CONTROL-C TO CANCEL)"
+	echo -e "\nPROJECT PATH ALREADY EXISTS: ${cubic_project_path}\nPRESS ENTER TO DELETE AND RE-CREATE IT (OR PRESS CONTROL-C TO CANCEL)"
 	read -r
 
 	sudo rm -rf "${cubic_project_path}"

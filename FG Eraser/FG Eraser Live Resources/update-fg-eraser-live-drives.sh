@@ -101,8 +101,11 @@ human_readable_duration_from_seconds() { # Based On: https://stackoverflow.com/a
 
 echo -e '\n\nDetected USB Storage Devices:\n'
 
-detected_usb2_connection=false
-detected_usb1_connection=false
+detected_usb3_20gbps_connection_count=0
+detected_usb3_10gbps_connection_count=0
+detected_usb3_5gbps_connection_count=0
+detected_usb2_connection_count=0
+detected_usb1_connection_count=0
 output_this_lsusb_bus_section=false
 this_lsusb_bus_section=''
 while IFS='' read -r this_lsusb_line; do
@@ -119,10 +122,16 @@ while IFS='' read -r this_lsusb_line; do
 		if [[ "${this_lsusb_line}" == *'Class=Mass Storage'* ]]; then
 			output_this_lsusb_bus_section=true
 
-			if [[ "${this_lsusb_line}" == *' 480M' ]]; then
-				detected_usb2_connection=true
-			elif [[ "${this_lsusb_line}" == *' 12M' ]]; then
-				detected_usb1_connection=true
+			if [[ "${this_lsusb_line}" == *' 20000M' ]]; then
+				(( detected_usb3_20gbps_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 10000M' ]]; then
+				(( detected_usb3_10gbps_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 5000M' ]]; then
+				(( detected_usb3_5gbps_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 480M' ]]; then
+				(( detected_usb2_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 12M' || "${this_lsusb_line}" == *' 1.5M' ]]; then
+				(( detected_usb1_connection_count ++ ))
 			fi
 		fi
 	fi
@@ -200,13 +209,33 @@ if [[ -n "${fg_eraser_live_drives_list}" ]]; then
 		fi
 	done <<< "${fg_eraser_live_drives_list}"
 
-	if $detected_usb2_connection || [[ "${fg_eraser_live_drives_list}" == *':USBv2 '* ]]; then
-		>&2 echo -e '\n\nERROR: SOME DEVICE CONNECTED AT USB 2.0 SPEED\n'
+	if (( detected_usb3_20gbps_connection_count > 0 )); then
+		echo -e "\n${detected_usb3_20gbps_connection_count} DRIVES CONNECTED VIA USB USB 3.2 GEN 2x2: 20 GBPS"
+	fi
+
+	if (( detected_usb3_10gbps_connection_count > 0 )); then
+		echo -e "\n${detected_usb3_10gbps_connection_count} DRIVES CONNECTED VIA USB 3.2 GEN 2: 10 GBPS"
+	fi
+
+	if (( detected_usb3_5gbps_connection_count > 0 )); then
+		echo -e "\n${detected_usb3_5gbps_connection_count} DRIVES CONNECTED VIA USB 3.2 GEN 1: 5 GBPS"
+	fi
+
+	if (( detected_usb2_connection_count > 0 )) || [[ "${fg_eraser_live_drives_list}" == *':USBv2 '* ]]; then
+		if (( detected_usb2_connection_count == 0 )); then
+			detected_usb2_connection_count='SOME'
+		fi
+
+		>&2 echo -e "\n\nERROR: ${detected_usb2_connection_count} DRIVES CONNECTED VIA USB 2.0: 480 MBPS\n"
 
 		read -r
 		exit 2
-	elif $detected_usb1_connection || [[ "${fg_eraser_live_drives_list}" == *':USBv1 '* ]]; then
-		>&2 echo -e '\n\nERROR: SOME DEVICE CONNECTED AT USB 1.0 SPEED\n'
+	elif (( detected_usb1_connection_count > 0 )) || [[ "${fg_eraser_live_drives_list}" == *':USBv1 '* ]]; then
+		if (( detected_usb1_connection_count == 0 )); then
+			detected_usb1_connection_count='SOME'
+		fi
+
+		>&2 echo -e "\n\nERROR: ${detected_usb1_connection_count} DRIVES CONNECTED VIA USB 1.1: 12 MBPS\n"
 
 		read -r
 		exit 3

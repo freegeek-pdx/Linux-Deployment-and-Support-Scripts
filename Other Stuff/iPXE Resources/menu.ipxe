@@ -52,8 +52,8 @@ set PRODUCTION_LIVE_TOOLKIT_MINT_CINNAMON_TITLE Live Toolkit (Mint ${PRODUCTION_
 set PRODUCTION_LIVE_TOOLKIT_MINT_CLI_TITLE      Live Toolkit (Mint ${PRODUCTION_LIVE_TOOLKIT_MINT_VERSION} CLI)
 set KEYBOARD_TESTER_TITLE                       Keyboard and Mouse Tester
 set HDS_DOS_TITLE                               Hard Disk Sentinel (DOS Edition 1.21)
-set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 11.4)
-set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 7.00)
+set MEMTEST86_TITLE                             RAM Stress Test (MemTest86 Version 11.5)
+set MEMTEST86PLUS_TITLE                         RAM Stress Test (Memtest86+ Version 8.00)
 set HDT_TITLE                                   Hardware Detection Tool (0.5.2)
 set PARTEDMAGIC_TITLE                           Parted Magic (2021_02_28)
 set GPARTED_TITLE                               GParted (1.6.0-10)
@@ -432,7 +432,7 @@ goto error
 echo
 echo ${MEMTEST86PLUS_TITLE}
 echo
-iseq ${platform} efi && boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86plus.efi || boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86plus.bin ||
+boot ${TFTP_OR_HTTP}://${PXE_SERVER}/memtest86plus ||
 goto error
 
 :hdt

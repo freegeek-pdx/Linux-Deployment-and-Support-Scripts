@@ -105,7 +105,11 @@ human_readable_duration_from_seconds() { # Based On: https://stackoverflow.com/a
 
 echo -e '\n\nDetected USB Storage Devices:\n'
 
-detected_usb1_connection=false
+detected_usb3_20gbps_connection_count=0
+detected_usb3_10gbps_connection_count=0
+detected_usb3_5gbps_connection_count=0
+detected_usb2_connection_count=0
+detected_usb1_connection_count=0
 output_this_lsusb_bus_section=false
 this_lsusb_bus_section=''
 while IFS='' read -r this_lsusb_line; do
@@ -122,8 +126,16 @@ while IFS='' read -r this_lsusb_line; do
 		if [[ "${this_lsusb_line}" == *'Class=Mass Storage'* ]]; then
 			output_this_lsusb_bus_section=true
 
-			if [[ "${this_lsusb_line}" == *' 12M' ]]; then
-				detected_usb1_connection=true
+			if [[ "${this_lsusb_line}" == *' 20000M' ]]; then
+				(( detected_usb3_20gbps_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 10000M' ]]; then
+				(( detected_usb3_10gbps_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 5000M' ]]; then
+				(( detected_usb3_5gbps_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 480M' ]]; then
+				(( detected_usb2_connection_count ++ ))
+			elif [[ "${this_lsusb_line}" == *' 12M' || "${this_lsusb_line}" == *' 1.5M' ]]; then
+				(( detected_usb1_connection_count ++ ))
 			fi
 		fi
 	fi
@@ -210,11 +222,33 @@ if [[ -n "${memtest86_drives_list}" ]]; then
 		fi
 	done <<< "${memtest86_drives_list}"
 
-	if $detected_usb1_connection || [[ "${memtest86_drives_list}" == *':USBv1 '* ]]; then
-		>&2 echo -e '\n\nERROR: SOME DEVICE CONNECTED AT USB 1.0 SPEED\n'
+	if (( detected_usb3_20gbps_connection_count > 0 )); then
+		echo -e "\n${detected_usb3_20gbps_connection_count} DRIVES CONNECTED VIA USB USB 3.2 GEN 2x2: 20 GBPS"
+	fi
+
+	if (( detected_usb3_10gbps_connection_count > 0 )); then
+		echo -e "\n${detected_usb3_10gbps_connection_count} DRIVES CONNECTED VIA USB 3.2 GEN 2: 10 GBPS"
+	fi
+
+	if (( detected_usb3_5gbps_connection_count > 0 )); then
+		echo -e "\n${detected_usb3_5gbps_connection_count} DRIVES CONNECTED VIA USB 3.2 GEN 1: 5 GBPS"
+	fi
+
+	if (( detected_usb2_connection_count > 0 )) || [[ "${memtest86_drives_list}" == *':USBv2 '* ]]; then
+		if (( detected_usb2_connection_count == 0 )); then
+			detected_usb2_connection_count='SOME'
+		fi
+
+		>&2 echo -e "\nWARNING: ${detected_usb2_connection_count} DRIVES CONNECTED VIA USB 2.0: 480 MBPS"
+	elif (( detected_usb1_connection_count > 0 )) || [[ "${memtest86_drives_list}" == *':USBv1 '* ]]; then
+		if (( detected_usb1_connection_count == 0 )); then
+			detected_usb1_connection_count='SOME'
+		fi
+
+		>&2 echo -e "\n\nERROR: ${detected_usb1_connection_count} DRIVES CONNECTED VIA USB 1.1: 12 MBPS\n"
 
 		read -r
-		exit 2
+		exit 1
 	fi
 
 	if [[ -n "${memtest86_download_url}" ]]; then
@@ -224,7 +258,7 @@ if [[ -n "${memtest86_drives_list}" ]]; then
 	if [[ "${memtest86_image_path}" == *'/memtest86-site-usb.img' && ! -f "${CUSTOM_MEMTEST86_CONFIG_PATH}" ]]; then
 		>&2 echo -e "\n\nERROR: CUSTOM MEMTEST86 CONFIG NOT FOUND AT \"${CUSTOM_MEMTEST86_CONFIG_PATH}\"\n"
 		read -r
-		exit 3
+		exit 2
 	elif [[ -f "${memtest86_image_path}" ]]; then
 		echo -e "\n\nSource ISO Folder:\n\n${latest_memtest86_path##*/}"
 	fi
@@ -234,7 +268,7 @@ if [[ -n "${memtest86_drives_list}" ]]; then
 else
 	>&2 echo -e '\nERROR: NO MEMTEST86 DRIVES DETECTED\n'
 	read -r
-	exit 5
+	exit 3
 fi
 
 sudo -v # Run "sudo -v" with no command to pre-cache the authorization for subsequent commands requiring "sudo" (such as "dd" and "umount").
@@ -247,9 +281,9 @@ if [[ -n "${memtest86_download_url}" ]]; then
 	memtest86_image_filename="$(unzip -l "${TMPDIR}/memtest86-usb.zip" | awk '/\.img$/ { print $NF; exit }')"
 
 	if [[ "${memtest86_image_filename}" != *'.img'* ]]; then
-		>&2 echo -e "\n\nERROR: FAILED TO DETERMINE MEMTEST86 IMAGE FILENAME  - INTERNET REQUIRED\n"
+		>&2 echo -e "\n\nERROR: FAILED TO DETERMINE MEMTEST86 IMAGE FILENAME - INTERNET REQUIRED\n"
 		read -r
-		exit 6
+		exit 4
 	fi
 
 	rm -rf "${TMPDIR}/${memtest86_image_filename:?}"
@@ -261,7 +295,7 @@ if [[ -n "${memtest86_download_url}" ]]; then
 	if [[ ! -f "${memtest86_image_path}" ]]; then
 		>&2 echo -e "\n\nERROR: DOWNLOADING LATEST MEMTEST86 FAILED - INTERNET REQUIRED\n"
 		read -r
-		exit 7
+		exit 5
 	fi
 fi
 
@@ -320,17 +354,31 @@ while IFS=':' read -r this_drive_full_id this_drive_usb_id this_human_readable_s
 		fi
 
 
-		if ! $update_drive_failed && [[ "${memtest86_image_path}" == '/memtest86-site-usb.img' ]]; then
+		if ! $update_drive_failed && [[ "${memtest86_image_path}" == *'/memtest86-site-usb.img' ]]; then
 			echo -e "\n\nSetting Configuration on MemTest86 Drive ${disk_index} (${this_drive_id})..."
 
 			this_drive_verify_start_timestamp="$(date '+%s')"
 
 			this_memtest86_mount_point="/mnt/MemTest86 $(date '+%s')"
-			sudo umount "${this_memtest86_mount_point}" &> /dev/null
-			sudo rm -rf "${this_memtest86_mount_point}"
-			sudo mkdir "${this_memtest86_mount_point}"
-			sudo mount "${this_drive_full_id}1" "${this_memtest86_mount_point}"
-			mount_memtest86_exit_code="$?"
+
+			for (( mount_attempt = 1; mount_attempt <= 3; mount_attempt ++ )); do
+				sudo umount "${this_memtest86_mount_point}" &> /dev/null
+				sudo rm -rf "${this_memtest86_mount_point}"
+				sudo mkdir "${this_memtest86_mount_point}"
+				sudo mount "${this_drive_full_id}1" "${this_memtest86_mount_point}"
+				mount_memtest86_exit_code="$?"
+
+				if (( mount_memtest86_exit_code == 0 )); then
+					break
+				else
+					echo "  WARNING: MOUNT \"MemTest86\" (${this_drive_full_id}1) ATTEMPT ${mount_attempt} OF 3 FAILED WITH EXIT CODE ${mount_memtest86_exit_code}"
+
+					if (( mount_attempt != 3 )); then
+						echo "    TRYING AGAIN IN ${mount_attempt} SECOND$( (( mount_attempt != 1 )) && echo 'S' )..."
+						sleep "${mount_attempt}"
+					fi
+				fi
+			done
 
 			if (( mount_memtest86_exit_code != 0 )); then
 				update_drive_failed=true

@@ -22,6 +22,8 @@
 # If the Terminal window closes itself, that means an error happened causing the script to exit prematurely.
 # When everything is successful, the Terminal window will stay open until you close it manually or hit the Enter key.
 
+TMPDIR="$([[ -d "${TMPDIR}" && -w "${TMPDIR}" ]] && echo "${TMPDIR%/}" || echo '/tmp')" # Make sure "TMPDIR" is always set and that it DOES NOT have a trailing slash for consistency regardless of the current environment.
+
 echo -e '\nPREPARE CUBIC PROJECT FOR MINT INSTALLER\n'
 
 if [[ "$(hostname)" == 'cubic' ]]; then
@@ -49,13 +51,19 @@ if [[ -n "${version_suffix}" && "${version_suffix}" != '-'* ]]; then
 	version_suffix="-${version_suffix}"
 fi
 
+if ! command -v xmllint &> /dev/null; then
+	echo -e "\n>>> INSTALLING XMLLINT <<<\n"
+	sudo apt update || echo 'APT UPDATE ERROR - CONTINUING ANYWAY'
+	sudo apt install --no-install-recommends libxml2-utils || echo 'XMLLINT INSTALL ERROR - CONTINUING ANYWAY'
+fi
+
 os_codename="$(curl -m 5 -sfL 'https://www.linuxmint.com/download_all.php' | xmllint --html --xpath "string(//td[text()='${os_version}']/following-sibling::td[1])" - 2> /dev/null)"
 
 if [[ -z "${os_codename}" ]]; then
 	if [[ "${version_suffix}" == '-beta' ]]; then
 		read -rp 'OS Codename for BETA: ' os_codename
 	else
-		>&2 echo -e "\nERROR: FAILED TO RETRIEVE CODENAME FOR OS VERSION ${os_version} (INTERNET & \"libxml2-utils\" REQUIRED)"
+		>&2 echo -e "\nERROR: FAILED TO RETRIEVE CODENAME FOR OS VERSION ${os_version} (INTERNET & \"libxml2-utils\" FOR XMLLINT REQUIRED)"
 		read -r
 		exit 3
 	fi
@@ -83,12 +91,31 @@ mkdir -p "${cubic_project_parent_path}"
 source_iso_name="linuxmint-${os_version}-cinnamon-64bit${version_suffix}.iso"
 
 if [[ -f "${cubic_project_parent_path}/Linux ISOs/${source_iso_name}" ]]; then
+	if [[ -z "${version_suffix}" ]]; then
+		echo -e "\nVerifying Source ISO \"${source_iso_name}\"..."
+		source_iso_intended_sha256="$(curl -m 5 -sfL "https://mirrors.edge.kernel.org/linuxmint/stable/${os_version}/sha256sum.txt" | awk '/-cinnamon-64bit/ { print $1; exit }')"
+
+		if [[ -n "${source_iso_intended_sha256}" ]]; then
+			source_iso_actual_sha256="$(shasum -a 256 "${cubic_project_parent_path}/Linux ISOs/${source_iso_name}" | awk '{ print $1; exit }')"
+
+			if [[ "${source_iso_actual_sha256}" == "${source_iso_intended_sha256}" ]]; then
+				echo -e "\nVerified Source ISO \"${source_iso_name}\""
+			else
+				echo -e "\nERROR: FAILED TO VERIFY SOURCE ISO \"${source_iso_name}\" (\"${source_iso_actual_sha256}\" != \"${source_iso_intended_sha256}\")"
+				read -r
+				exit 5
+			fi
+		else
+			echo -e "\nFAILED to Retrieve Source ISO \"${source_iso_name}\" Intended SHA256 - CONTINUING ANYWAY"
+		fi
+	fi
+
 	echo -e "\nPRESS ENTER TO CONTINUE WITH ISO PATH \"${cubic_project_parent_path}/Linux ISOs/${source_iso_name}\" (OR PRESS CONTROL-C TO CANCEL)"
 	read -r
 else
 	>&2 echo -e "\nERROR: SOURCE ISO NOT FOUND AT \"${cubic_project_parent_path}/Linux ISOs/${source_iso_name}\""
 	read -r
-	exit 5
+	exit 6
 fi
 
 build_date="$(date '+%y.%m.%d')"
@@ -212,7 +239,7 @@ custom_installer_resources_path="$(cd "${BASH_SOURCE[0]%/*}" &> /dev/null && pwd
 if ! WIFI_PASSWORD="$(< "${custom_installer_resources_path}/Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
 	>&2 echo -e '\nERROR: FAILED TO GET WI-FI PASSWORD\n'
 	read -r
-	exit 6
+	exit 7
 fi
 readonly WIFI_PASSWORD
 
@@ -274,10 +301,23 @@ fi
 sed -i '/^ubiquity/d' "${cubic_project_disk_path}/casper/filesystem.manifest-remove" # Remove lines starting with "ubiquity" from this file to NOT REMOVE the packages to save time since they would just be re-installed when "oem-config-gtk" gets installed at the end of the installation process.
 
 # INSTALL LATEST MEMTEST86+ WHICH ALSO SUPPORTS EFI (CUSTOM GRUB MENU INCLUDES ENTRY FOR EFI MEMTEST)
-rm -rf '/tmp/mt86plus_latest.binaries.zip' "${cubic_project_disk_path}/casper/memtest" "${cubic_project_disk_path}/boot/memtest"*
-curl --connect-timeout 5 --progress-bar -fL "https://memtest.org$(curl -m 5 -sfL 'https://memtest.org' | awk -F '"' '$2 ~ /\.binaries\.zip$/ { print $2; exit }')" -o '/tmp/mt86plus_latest.binaries.zip'
-unzip -jo '/tmp/mt86plus_latest.binaries.zip' -d "${cubic_project_disk_path}/boot"
-rm -f '/tmp/mt86plus_latest.binaries.zip'
+rm -rf "${TMPDIR}/mt86plus_latest.binaries.zip" "${cubic_project_disk_path}/casper/memtest" "${cubic_project_disk_path}/boot/memtest"*
+curl --connect-timeout 5 --progress-bar -fL "https://memtest.org$(curl -m 5 -sfL 'https://memtest.org' | awk -F '"' '$2 ~ /\.binaries\.zip$/ { print $2; exit }')" -o "${TMPDIR}/mt86plus_latest.binaries.zip"
+if [[ -f "${TMPDIR}/mt86plus_latest.binaries.zip" ]]; then
+	memtest86plus_filename="$(unzip -l "${TMPDIR}/mt86plus_latest.binaries.zip" | awk '/_x86_64$/ { print $NF; exit }')"
+	if [[ -n "${memtest86plus_filename}" ]]; then
+		rm -rf "${cubic_project_disk_path:?}/boot/${memtest86plus_filename}"
+		unzip -jo "${TMPDIR}/mt86plus_latest.binaries.zip" -d "${cubic_project_disk_path}/boot" "${memtest86plus_filename}"
+		mv -f "${cubic_project_disk_path}/boot/${memtest86plus_filename}" "${cubic_project_disk_path}/boot/memtest86plus"
+	fi
+fi
+rm -f "${TMPDIR}/mt86plus_latest.binaries.zip"
+
+if [[ ! -f "${cubic_project_disk_path}/boot/memtest86plus" ]]; then
+	>&2 echo -e "\nERROR: FAILED TO DOWNLOAD AND EXTRACT LATEST MEMTEST86PLUS"
+	read -r
+	exit 8
+fi
 
 # Some computers ONLY attempt to boot from "mmx64.efi" even if Secure Boot is disabled and BIOS has been completely reset.
 if [[ ! -f "${cubic_project_disk_path}/EFI/boot/mmx64.efi" ]]; then

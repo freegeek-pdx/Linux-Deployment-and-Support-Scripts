@@ -51,6 +51,12 @@ if [[ -n "${version_suffix}" && "${version_suffix}" != '-'* ]]; then
 	version_suffix="-${version_suffix}"
 fi
 
+if ! command -v xmllint &> /dev/null; then
+	echo -e "\n>>> INSTALLING XMLLINT <<<\n"
+	sudo apt update || echo 'APT UPDATE ERROR - CONTINUING ANYWAY'
+	sudo apt install --no-install-recommends libxml2-utils || echo 'LIBXML2 INSTALL ERROR - CONTINUING ANYWAY'
+fi
+
 os_codename="$(curl -m 5 -sfL 'https://www.linuxmint.com/download_all.php' | xmllint --html --xpath "string(//td[text()='${os_version}']/following-sibling::td[1])" - 2> /dev/null)"
 
 if [[ -z "${os_codename}" ]]; then
@@ -85,12 +91,31 @@ mkdir -p "${cubic_project_parent_path}"
 source_iso_name="linuxmint-${os_version}-cinnamon-64bit${version_suffix}.iso"
 
 if [[ -f "${cubic_project_parent_path}/Linux ISOs/${source_iso_name}" ]]; then
+	if [[ -z "${version_suffix}" ]]; then
+		echo -e "\nVerifying Source ISO \"${source_iso_name}\"..."
+		source_iso_intended_sha256="$(curl -m 5 -sfL "https://mirrors.edge.kernel.org/linuxmint/stable/${os_version}/sha256sum.txt" | awk '/-cinnamon-64bit/ { print $1; exit }')"
+
+		if [[ -n "${source_iso_intended_sha256}" ]]; then
+			source_iso_actual_sha256="$(shasum -a 256 "${cubic_project_parent_path}/Linux ISOs/${source_iso_name}" | awk '{ print $1; exit }')"
+
+			if [[ "${source_iso_actual_sha256}" == "${source_iso_intended_sha256}" ]]; then
+				echo -e "\nVerified Source ISO \"${source_iso_name}\""
+			else
+				echo -e "\nERROR: FAILED TO VERIFY SOURCE ISO \"${source_iso_name}\" (\"${source_iso_actual_sha256}\" != \"${source_iso_intended_sha256}\")"
+				read -r
+				exit 5
+			fi
+		else
+			echo -e "\nFAILED to Retrieve Source ISO \"${source_iso_name}\" Intended SHA256 - CONTINUING ANYWAY"
+		fi
+	fi
+
 	echo -e "\nPRESS ENTER TO CONTINUE WITH ISO PATH \"${cubic_project_parent_path}/Linux ISOs/${source_iso_name}\" (OR PRESS CONTROL-C TO CANCEL)"
 	read -r
 else
 	>&2 echo -e "\nERROR: SOURCE ISO NOT FOUND AT \"${cubic_project_parent_path}/Linux ISOs/${source_iso_name}\""
 	read -r
-	exit 5
+	exit 6
 fi
 
 build_date="$(date '+%y.%m.%d')"
@@ -215,7 +240,7 @@ custom_installer_resources_path="${custom_toolkit_resources_path}/../Mint Instal
 if ! WIFI_PASSWORD="$(< "${custom_installer_resources_path}/Wi-Fi Password.txt")" || [[ -z "${WIFI_PASSWORD}" ]]; then
 	>&2 echo -e '\nERROR: FAILED TO GET WI-FI PASSWORD\n'
 	read -r
-	exit 6
+	exit 7
 fi
 readonly WIFI_PASSWORD
 
@@ -456,8 +481,21 @@ sudo rm -f "${cubic_project_root_path}/usr/bin/ubiquity"
 # INSTALL LATEST MEMTEST86+ WHICH ALSO SUPPORTS EFI (CUSTOM GRUB MENU INCLUDES ENTRY FOR EFI MEMTEST)
 rm -rf "${TMPDIR}/mt86plus_latest.binaries.zip" "${cubic_project_disk_path}/casper/memtest" "${cubic_project_disk_path}/boot/memtest"*
 curl --connect-timeout 5 --progress-bar -fL "https://memtest.org$(curl -m 5 -sfL 'https://memtest.org' | awk -F '"' '$2 ~ /\.binaries\.zip$/ { print $2; exit }')" -o "${TMPDIR}/mt86plus_latest.binaries.zip"
-unzip -jo "${TMPDIR}/mt86plus_latest.binaries.zip" -d "${cubic_project_disk_path}/boot"
+if [[ -f "${TMPDIR}/mt86plus_latest.binaries.zip" ]]; then
+	memtest86plus_filename="$(unzip -l "${TMPDIR}/mt86plus_latest.binaries.zip" | awk '/_x86_64$/ { print $NF; exit }')"
+	if [[ -n "${memtest86plus_filename}" ]]; then
+		rm -rf "${cubic_project_disk_path:?}/boot/${memtest86plus_filename}"
+		unzip -jo "${TMPDIR}/mt86plus_latest.binaries.zip" -d "${cubic_project_disk_path}/boot" "${memtest86plus_filename}"
+		mv -f "${cubic_project_disk_path}/boot/${memtest86plus_filename}" "${cubic_project_disk_path}/boot/memtest86plus"
+	fi
+fi
 rm -f "${TMPDIR}/mt86plus_latest.binaries.zip"
+
+if [[ ! -f "${cubic_project_disk_path}/boot/memtest86plus" ]]; then
+	>&2 echo -e "\nERROR: FAILED TO DOWNLOAD AND EXTRACT LATEST MEMTEST86PLUS"
+	read -r
+	exit 8
+fi
 
 # Some computers ONLY attempt to boot from "mmx64.efi" even if Secure Boot is disabled and BIOS has been completely reset.
 if [[ ! -f "${cubic_project_disk_path}/EFI/boot/mmx64.efi" ]]; then
